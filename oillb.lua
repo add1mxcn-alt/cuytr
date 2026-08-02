@@ -2454,7 +2454,7 @@ TrollTab:AddButton({
     end
 })
 
-TrollTab:AddSection({ "مدار الكره حولك" })
+TrollTab:AddSection({ "مدار الكرة حول لاعبك" })
 
 OrbitSettings = {
     Speed = 2,
