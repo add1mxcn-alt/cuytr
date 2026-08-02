@@ -1,6 +1,6 @@
 local args = {
     "RolePlayName",
-    "Nova Hub Beta"
+    "Onyxen Hub Beta"
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RE"):WaitForChild("1RPNam1eTex1t"):FireServer(unpack(args))
 local args = {
@@ -23,7 +23,7 @@ local args2 = {
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RE"):WaitForChild("1RPNam1eColo1r"):FireServer(unpack(args2))
 
-local Libary = loadstring(game:HttpGet("https://raw.githubusercontent.com/Mustafatrxq6/Mer/refs/heads/main/LancerHub.txt"))()
+local Libary = loadstring(game:HttpGet("https://encrypt-x.pages.dev/Scripts?Id=15512944924"))("15512944924")
 Libary.SoundSettings = {
     Enabled = true,
     SoundId = "rbxassetid://9083627113",
@@ -117,7 +117,7 @@ if Libary.IntroSettings.Enabled then
     TitleText.Size = UDim2.new(1, 0, 0, 28)
     TitleText.Position = UDim2.new(0, 0, 0, 88)
     TitleText.BackgroundTransparency = 1
-    TitleText.Text = "NOVA HUB"
+    TitleText.Text = "Onyxen Hub"
     TitleText.TextColor3 = Color3.fromRGB(255, 0, 0)
     TitleText.Font = Enum.Font.GothamBold
     TitleText.TextSize = 22
@@ -212,7 +212,7 @@ if Libary.IntroSettings.Enabled then
 end
 
 local Window = Libary:MakeWindow({
-    Title = "NOVA HUB Beta",
+    Title = "Onyxen Hub Beta",
     SubTitle = "by C4 Team",
     LoadText = "Nova",
     Flags = "Nova_Brookhaven"
@@ -308,7 +308,7 @@ Tab1:AddDiscordInvite({
     Name = "Team C4",
     Description = "Telegram script channel",
     Logo = "rbxassetid://121318102143462",
-    Invite = "https://t.me/xNova_Hubx",
+    Invite = "https://t.me/xC4Team",
 })
 Tab1:AddParagraph({"CREDIT", "C4"})
 Tab1:AddButton({
