@@ -1009,32 +1009,73 @@ local BangTab = Window:MakeTab({
 local BangPlayers = game:GetService("Players")
 local BangRunService = game:GetService("RunService")
 
-local function GetBangPlayerNames()
-    local names = {}
+local selectedBangPlayer = nil
+local matchedPlayers = {}
+
+local function FindPlayerByPartialName(input)
+    if not input or input == "" then
+        return nil
+    end
+    
+    input = input:lower()
+    local matches = {}
+    
     for _, player in ipairs(BangPlayers:GetPlayers()) do
         if player ~= BangPlayers.LocalPlayer then
-            table.insert(names, player.Name)
+            local nameLower = player.Name:lower()
+            local displayLower = player.DisplayName:lower()
+            
+            if nameLower:find(input, 1, true) or displayLower:find(input, 1, true) then
+                table.insert(matches, player)
+            end
         end
     end
-    return names
+    
+    return matches
 end
 
-local selectedBangPlayer = nil
-
-local BangPlayerDropdown = BangTab:AddDropdown({
-    Name = "اختيار اللاعب",
+local BangTextBox = BangTab:AddTextBox({
+    Name = "اسم اللاعب (اكتب اول حرفين او ثلاث)",
     Default = "",
-    Multi = false,
-    Options = GetBangPlayerNames(),
+    PlaceholderText = "مثلاً: ah او ahmed",
+    ClearText = false,
     Callback = function(name)
-        selectedBangPlayer = BangPlayers:FindFirstChild(name)
-    end
-})
-
-BangTab:AddButton({
-    Name = "تحديث قائمة اللاعبين",
-    Callback = function()
-        BangPlayerDropdown:Set(GetBangPlayerNames())
+        if name and name ~= "" then
+            local matches = FindPlayerByPartialName(name)
+            
+            if #matches == 0 then
+                selectedBangPlayer = nil
+                matchedPlayers = {}
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "❌ خطأ",
+                    Text = "لا يوجد لاعب بهذا الاسم: " .. name,
+                    Duration = 2
+                })
+            elseif #matches == 1 then
+                selectedBangPlayer = matches[1]
+                matchedPlayers = {}
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "✅ تم التحديد",
+                    Text = "تم اختيار: " .. selectedBangPlayer.Name,
+                    Duration = 2
+                })
+            else
+                matchedPlayers = matches
+                local names = {}
+                for i, player in ipairs(matches) do
+                    table.insert(names, player.Name)
+                end
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "⚠️ عدة لاعبين متطابقين",
+                    Text = "الرجاء كتابة اسم اكثر تحديداً\n" .. table.concat(names, ", "),
+                    Duration = 4
+                })
+                selectedBangPlayer = nil
+            end
+        else
+            selectedBangPlayer = nil
+            matchedPlayers = {}
+        end
     end
 })
 
@@ -1119,6 +1160,15 @@ local function createBangToggle(name, yOffset, faceBang)
             local player = BangPlayers.LocalPlayer
 
             if Value then
+                if not selectedBangPlayer then
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "❌ خطأ",
+                        Text = "اكتب اسم لاعب اولاً",
+                        Duration = 2
+                    })
+                    bangActive = false
+                    return
+                end
                 startBang()
                 player.CharacterAdded:Connect(function(newChar)
                     if bangActive then
