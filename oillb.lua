@@ -2404,6 +2404,23 @@ TrollTab:AddButton({
     end
 })
 
+TrollTab:AddSection({ "الكل بالكره" })
+
+TrollTab:AddButton({
+    Name = "فلنق الكل بالكره",
+    Callback = function()
+        for _, Target in ipairs(Players:GetPlayers()) do
+            if Target ~= LocalPlayer and Target.Character and Target.Character:FindFirstChild("HumanoidRootPart") then
+                local Hum = Target.Character:FindFirstChildOfClass("Humanoid")
+                if Hum and Hum.Health > 0 then
+                    FlingBall(Target)
+                    task.wait(0.5)
+                end
+            end
+        end
+    end
+})
+
 TrollTab:AddSection({ "عشوائي بالكره" })
 
 local LastRandomBall = nil
@@ -2437,24 +2454,7 @@ TrollTab:AddButton({
     end
 })
 
-TrollTab:AddSection({ "الكل بالكره" })
-
-TrollTab:AddButton({
-    Name = "فلنق الكل بالكره",
-    Callback = function()
-        for _, Target in ipairs(Players:GetPlayers()) do
-            if Target ~= LocalPlayer and Target.Character and Target.Character:FindFirstChild("HumanoidRootPart") then
-                local Hum = Target.Character:FindFirstChildOfClass("Humanoid")
-                if Hum and Hum.Health > 0 then
-                    FlingBall(Target)
-                    task.wait(0.5)
-                end
-            end
-        end
-    end
-})
-
-TrollTab:AddSection({ "مدار الكره (حمايه لك)" })
+TrollTab:AddSection({ "مدار الكره حولك" })
 
 OrbitSettings = {
     Speed = 2,
@@ -2494,34 +2494,24 @@ TrollTab:AddSlider({
 })
 
 TrollTab:AddToggle({
-    Name = "تفعيل الفلنق مع المدار",
+    Name = "مدار الكره مع الفلنق",
     Default = false,
     Callback = function(State)
         OrbitSettings.Fling = State
     end
 })
 
-local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local orbitLoop = nil
-local orbitBallInstance = nil
-local orbitEnabledTouch = false
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
-local function DestroyOrbit()
-    if orbitLoop then
-        orbitLoop:Disconnect()
-        orbitLoop = nil
-    end
-    if orbitBallInstance then
-        orbitBallInstance:Destroy()
-        orbitBallInstance = nil
-    end
-end
+local OrbitActive = false
+local OrbitBall = nil
+local OrbitConnection = nil
 
-local function OrbitBall(TargetChar)
-    if not TargetChar or not TargetChar:FindFirstChild("HumanoidRootPart") then return end
-    
-    local Player = game.Players.LocalPlayer
+local function GetOrCreateBall()
+    local Player = LocalPlayer
     local Character = Player.Character or Player.CharacterAdded:Wait()
     local Backpack = Player:WaitForChild("Backpack")
     local ServerBalls = workspace:WaitForChild("WorkspaceCom"):WaitForChild("001_SoccerBalls")
@@ -2537,48 +2527,140 @@ local function OrbitBall(TargetChar)
     
     repeat task.wait() until ServerBalls:FindFirstChild("Soccer"..Player.Name)
     
-    local Orb = ServerBalls:FindFirstChild("Soccer"..Player.Name)
-    if not Orb then return end
+    local Ball = ServerBalls:FindFirstChild("Soccer"..Player.Name)
+    if Ball then
+        Ball.CanCollide = false
+        Ball.Massless = true
+        Ball.CustomPhysicalProperties = PhysicalProperties.new(0.0001, 0, 0)
+    end
+    return Ball
+end
+
+local function FlingTarget(Target)
+    if not Target or not Target.Character then return end
     
-    Orb.CanCollide = false
-    Orb.Massless = true
-    Orb.CustomPhysicalProperties = PhysicalProperties.new(0.0001, 0, 0)
+    local Ball = OrbitBall
+    if not Ball or not Ball.Parent then return end
     
-    if Orb:FindFirstChild("FlingPower") then Orb.FlingPower:Destroy() end
+    local TChar = Target.Character
+    local TRoot = TChar:FindFirstChild("HumanoidRootPart")
+    local THum = TChar:FindFirstChildOfClass("Humanoid")
     
-    if OrbitSettings.Fling then
-        local BV = Instance.new("BodyVelocity")
-        BV.Name = "FlingPower"
-        BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
-        BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        BV.P = 9e900
-        BV.Parent = Orb
+    if not TRoot or not THum or THum.Health <= 0 then return end
+    
+    if Ball:FindFirstChild("FlingPower") then
+        Ball.FlingPower:Destroy()
     end
     
-    task.spawn(function()
-        while Orb and Orb.Parent and TargetChar and TargetChar.Parent do
-            local Angle = tick() * OrbitSettings.Speed
-            local Offset = CFrame.new(
-                math.cos(Angle) * OrbitSettings.Distance,
-                OrbitSettings.Height,
-                math.sin(Angle) * OrbitSettings.Distance
-            )
-            Orb.CFrame = TargetChar.HumanoidRootPart.CFrame * Offset
-            task.wait(1/60)
+    local BV = Instance.new("BodyVelocity")
+    BV.Name = "FlingPower"
+    BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+    BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    BV.P = 9e900
+    BV.Parent = Ball
+    
+    local StartTime = tick()
+    repeat
+        if TRoot.Velocity.Magnitude > 0 then
+            local PosX = TRoot.Position.X + (TRoot.Velocity.X / 1.5)
+            local PosY = TRoot.Position.Y + (TRoot.Velocity.Y / 1.5)
+            local PosZ = TRoot.Position.Z + (TRoot.Velocity.Z / 1.5)
+            Ball.CFrame = CFrame.new(Vector3.new(PosX, PosY, PosZ))
+            Ball.Orientation += Vector3.new(45, 60, 30)
+        else
+            for _, v in pairs(TChar:GetChildren()) do
+                if v:IsA("BasePart") and v.CanCollide and not v.Anchored then
+                    Ball.CFrame = v.CFrame
+                    task.wait(1/6000)
+                end
+            end
         end
-    end)
+        task.wait(1/6000)
+    until not TChar or not TChar.Parent or TRoot.Velocity.Magnitude > 1000 or THum.Health <= 0 or (tick() - StartTime) > 3
+    
+    if Ball:FindFirstChild("FlingPower") then
+        Ball.FlingPower:Destroy()
+    end
+end
+
+local function CheckNearbyPlayers()
+    if not OrbitActive then return end
+    if not OrbitSettings.Fling then return end
+    
+    local Char = LocalPlayer.Character
+    if not Char then return end
+    
+    local HRP = Char:FindFirstChild("HumanoidRootPart")
+    if not HRP then return end
+    
+    for _, Target in ipairs(Players:GetPlayers()) do
+        if Target ~= LocalPlayer then
+            local TChar = Target.Character
+            if TChar then
+                local TRoot = TChar:FindFirstChild("HumanoidRootPart")
+                if TRoot then
+                    local Distance = (HRP.Position - TRoot.Position).Magnitude
+                    if Distance < OrbitSettings.Distance + 3 then
+                        task.spawn(function()
+                            FlingTarget(Target)
+                        end)
+                    end
+                end
+            end
+        end
+    end
 end
 
 TrollTab:AddToggle({
-    Name = "تفعيل مدار الكره",
+    Name = "مدار الكره",
     Default = false,
     Callback = function(State)
-        local Char = LocalPlayer.Character
+        OrbitActive = State
+        
+        if OrbitConnection then
+            OrbitConnection:Disconnect()
+            OrbitConnection = nil
+        end
+        
         if State then
-            OrbitBall(Char)
+            OrbitBall = GetOrCreateBall()
+            if not OrbitBall then return end
+            
+            local Angle = 0
+            local OriginalCamera = workspace.CurrentCamera.CameraSubject
+            
+            OrbitConnection = RunService.Heartbeat:Connect(function()
+                if not OrbitActive or not OrbitBall or not OrbitBall.Parent then
+                    OrbitActive = false
+                    return
+                end
+                
+                local Char = LocalPlayer.Character
+                if not Char then return end
+                
+                local HRP = Char:FindFirstChild("HumanoidRootPart")
+                if not HRP then return end
+                
+                Angle = Angle + (OrbitSettings.Speed * 0.016)
+                
+                local Offset = CFrame.new(
+                    math.cos(Angle) * OrbitSettings.Distance,
+                    OrbitSettings.Height,
+                    math.sin(Angle) * OrbitSettings.Distance
+                )
+                
+                OrbitBall.CFrame = HRP.CFrame * Offset
+                
+                if OrbitSettings.Fling then
+                    CheckNearbyPlayers()
+                end
+            end)
+            
         else
-            local Orb = workspace.WorkspaceCom["001_SoccerBalls"]:FindFirstChild("Soccer"..LocalPlayer.Name)
-            if Orb then Orb:Destroy() end
+            if OrbitBall and OrbitBall.Parent then
+                OrbitBall:Destroy()
+            end
+            OrbitBall = nil
         end
     end
 })
