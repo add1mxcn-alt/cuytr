@@ -5810,3 +5810,11 @@ SongTab:AddToggle({
         end
     end
 })
+
+local BonTab = Window:MakeTab({
+    Title = "ok",
+    Icon = "rbxassetid://95704435998219"
+})
+
+BonTab:AddSection({ Name = "momomo" })
+
