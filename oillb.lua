@@ -1001,6 +1001,11 @@ ShaderTab:AddToggle({
     end
 })
 
+local BangTab = Window:MakeTab({
+    Title = "البانق",
+    Icon = "rbxassetid://75014710749916"
+})
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -1013,11 +1018,6 @@ local function GetBangPlayerNames()
     end
     return names
 end
-
-local BangTab = Window:MakeTab({
-    Title = "البانق",
-    Icon = "rbxassetid://75014710749916"
-})
 
 local selectedBangPlayer = nil
 
@@ -1059,8 +1059,6 @@ local function disableBangNoclip()
         end
     end
 end
-
-local BangStates = {}
 
 local function createBangToggle(name, yOffset, faceBang)
     local bangActive = false
