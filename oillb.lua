@@ -1001,10 +1001,146 @@ ShaderTab:AddToggle({
     end
 })
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local function GetPlayerNames()
+    local names = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            table.insert(names, player.Name)
+        end
+    end
+    return names
+end
+
 local BangTab = Window:MakeTab({
     Title = "البانق",
     Icon = "rbxassetid://75014710749916"
 })
+
+local selectedPlayer = nil
+
+local PlayerDropdown = BangTab:AddDropdown({
+    Name = "اختيار اللاعب",
+    Default = "",
+    Multi = false,
+    Options = GetPlayerNames(),
+    Callback = function(name)
+        selectedPlayer = Players:FindFirstChild(name)
+    end
+})
+
+BangTab:AddButton({
+    Name = "تحديث قائمة اللاعبين",
+    Callback = function()
+        PlayerDropdown:Set(GetPlayerNames())
+    end
+})
+
+local function enableNoclip()
+    local player = Players.LocalPlayer
+    local char = player.Character
+    if not char then return end
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+end
+
+local function disableNoclip()
+    local player = Players.LocalPlayer
+    local char = player.Character
+    if not char then return end
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
+        end
+    end
+end
+
+local function createBangToggle(name, yOffset, faceBang)
+    local bangActive = false
+    local connection = nil
+    local togglePosition = false
+    local currentChar = nil
+    local currentHumanoid = nil
+
+    local function startBang()
+        local player = Players.LocalPlayer
+        currentChar = player.Character
+        if not currentChar then return end
+
+        currentHumanoid = currentChar:FindFirstChildOfClass("Humanoid")
+        if not currentHumanoid then return end
+
+        currentHumanoid.PlatformStand = true
+        enableNoclip()
+
+        if connection then connection:Disconnect() end
+
+        connection = RunService.Heartbeat:Connect(function()
+            if bangActive and selectedPlayer then
+                local targetChar = selectedPlayer.Character
+                if targetChar and targetChar.PrimaryPart then
+                    local targetHead = targetChar:FindFirstChild("Head")
+                    if targetHead and currentChar and currentChar.PrimaryPart then
+                        local offset = togglePosition and 1 or 4
+                        if faceBang then
+                            currentChar:SetPrimaryPartCFrame(targetHead.CFrame * CFrame.new(0, 1, -offset) * CFrame.Angles(0, math.rad(180), 0))
+                        else
+                            currentChar:SetPrimaryPartCFrame(targetHead.CFrame * CFrame.new(0, yOffset, offset) * CFrame.Angles(0, 0, 0))
+                        end
+                        togglePosition = not togglePosition
+                        wait(1)
+                    end
+                end
+            end
+        end)
+    end
+
+    local function stopBang()
+        if currentHumanoid then
+            currentHumanoid.PlatformStand = false
+        end
+        disableNoclip()
+        if connection then
+            connection:Disconnect()
+            connection = nil
+        end
+    end
+
+    BangTab:AddToggle({
+        Name = name,
+        Default = false,
+        Callback = function(Value)
+            bangActive = Value
+            local player = Players.LocalPlayer
+
+            if Value then
+                startBang()
+                player.CharacterAdded:Connect(function(newChar)
+                    if bangActive then
+                        stopBang()
+                        currentChar = newChar
+                        currentHumanoid = newChar:FindFirstChildOfClass("Humanoid")
+                        if currentHumanoid then
+                            startBang()
+                        end
+                    end
+                end)
+            else
+                stopBang()
+            end
+        end    
+    })
+end
+
+createBangToggle("V1 - بانق", -1, false)
+createBangToggle("V2 - بانق", -1.5, false)
+createBangToggle("V1 - بانق وجه", 1, true)
+createBangToggle("V2 - بانق وجه", 1, true)
 
 BangTab:AddSection({ Name = "بانق الطفل" })
 
@@ -3943,8 +4079,8 @@ BoatsTab:AddButton({
 })
 
 local MiscTab = Window:MakeTab({
-    Title = "متنوع",
-    Icon = "rbxassetid://101969836917433"
+    Title = "ترول متنوع",
+    Icon = "rbxassetid://87060218582359"
 })
 
 MiscTab:AddSection({ "البيت" })
