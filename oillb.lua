@@ -5810,3 +5810,239 @@ SongTab:AddToggle({
         end
     end
 })
+
+local RgbTab = Window:MakeTab({ Title = "آر جي بي", Icon = "rbxassetid://10734910187" })
+
+RgbTab:AddSection({ "الأدوات" })
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+local RE = ReplicatedStorage:WaitForChild("RE")
+local Running = false
+local ToolName = "BabyRattle"
+local ToolSpeed = 3
+
+local Tools = {
+    ["دهان || PaintRoller"] = "PaintRoller",
+    ["أحمر شفاه || Lipstick"] = "Lipstick",
+    ["قوس || Bow"] = "Bow",
+    ["راديو || Boombox"] = "Boombox",
+    ["ترمس || Thermos"] = "Thermos",
+    ["دونات || Donut"] = "Donut",
+    ["فرشاة خيل || HorseBrush"] = "HorseBrush",
+    ["هراوات || GlowingBatons"] = "GlowingBatons",
+    ["مكبر صوت || Megaphone"] = "Megaphone",
+    ["شمعة || Candle"] = "Candle",
+    ["مشعل || GuardTorch"] = "GuardTorch",
+    ["لعبة أطفال || BabyRattle"] = "BabyRattle"
+}
+
+local function EquipTool(Name)
+    local Char = Player.Character or Player.CharacterAdded:Wait()
+    local Hum = Char:WaitForChild("Humanoid")
+    local Tool = Player.Backpack:WaitForChild(Name, 2)
+    if Tool then
+        Tool.Parent = Char
+        Hum:EquipTool(Tool)
+    end
+    return Tool
+end
+
+local function HSV(T)
+    return Color3.fromHSV(T % 1, 1, 1)
+end
+
+RgbTab:AddDropdown({
+    Name = "اختيار الأداة",
+    Default = "لعبة أطفال || BabyRattle",
+    Options = {"دهان || PaintRoller", "أحمر شفاه || Lipstick", "قوس || Bow", "راديو || Boombox", "ترمس || Thermos", "دونات || Donut", "فرشاة خيل || HorseBrush", "هراوات || GlowingBatons", "مكبر صوت || Megaphone", "شمعة || Candle", "مشعل || GuardTorch", "لعبة أطفال || BabyRattle"},
+    Callback = function(Value)
+        ToolName = Tools[Value]
+    end
+})
+
+RgbTab:AddSlider({
+    Name = "سرعة التلوين",
+    Min = 1,
+    Max = 10,
+    Default = 3,
+    Callback = function(Value)
+        ToolSpeed = Value / 10
+    end
+})
+
+RgbTab:AddToggle({
+    Name = "تفعيل آر جي بي للأدوات",
+    Default = false,
+    Callback = function(State)
+        Running = State
+        if not State then return end
+
+        task.spawn(function()
+            RE:WaitForChild("1Clea1rTool1s"):FireServer("ClearAllTools")
+            task.wait(0.2)
+            RE:WaitForChild("1Too1l"):InvokeServer("PickingTools", ToolName)
+            task.wait(0.3)
+
+            local Tool = EquipTool(ToolName)
+            if not Tool then return end
+
+            local SetColor = Player.PlayerGui:WaitForChild("ToolGui"):WaitForChild("ToolSettings"):WaitForChild("Settings"):WaitForChild("PropsColor"):WaitForChild("SetColor")
+
+            local Hue = 0
+            local Current = HSV(0)
+
+            local Connection
+            Connection = RunService.RenderStepped:Connect(function(Delta)
+                if not Running then
+                    Connection:Disconnect()
+                    return
+                end
+                Hue += Delta * ToolSpeed
+                local Target = HSV(Hue)
+                Current = Current:Lerp(Target, Delta * 5)
+                SetColor:FireServer(Current)
+            end)
+        end)
+    end
+})
+
+RgbTab:AddSection({ "الشعر" })
+
+local HairColors = {
+    Color3.new(1, 1, 0), Color3.new(0, 0, 1), Color3.new(1, 0, 1), Color3.new(1, 1, 1),
+    Color3.new(0, 1, 0), Color3.new(0.5, 0, 1), Color3.new(1, 0.647, 0), Color3.new(0, 1, 1)
+}
+
+local HairActive = false
+local HairSpeed = 1
+
+RgbTab:AddSlider({
+    Name = "سرعة التلوين",
+    Min = 1,
+    Max = 10,
+    Default = 1,
+    Callback = function(Value)
+        HairSpeed = Value / 10
+    end
+})
+
+local function ChangeHairColor()
+    local Index = 1
+    while HairActive do
+        if not HairActive then break end
+        local Args = { [1] = "ChangeHairColor2", [2] = HairColors[Index] }
+        RE:WaitForChild("1Max1y"):FireServer(unpack(Args))
+        task.wait(HairSpeed)
+        Index = Index % #HairColors + 1
+    end
+end
+
+RgbTab:AddToggle({
+    Name = "تفعيل آر جي بي للشعر",
+    Default = false,
+    Callback = function(Value)
+        HairActive = Value
+        if HairActive then
+            ChangeHairColor()
+        end
+    end
+})
+
+RgbTab:AddSection({ "الجسم" })
+
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local ChangeBodyColor = Remotes:WaitForChild("ChangeBodyColor")
+
+local BodyColors = {
+    "بني فاتح", "أصفر فاتح", "أزرق فاتح", "أخضر فاتح", "وردي فاتح",
+    "أحمر غامق", "برتقالي", "أزرق غامق", "بنفسجي غامق", "أخضر غامق",
+    "أصفر غامق", "أبيض", "أسود", "رمادي غامق", "رمادي", "رمادي فاتح",
+    "أحمر", "أخضر مصفر", "أزرق مخضر", "أرجواني", "وردي", "بني محمر",
+    "أخضر ترابي", "أحمر رملي", "أزرق رملي", "أخضر رملي", "أخضر داكن",
+    "أزرق بحري", "معجون أسنان", "سماوي", "وردي نيون", "قرمزي",
+    "أرجواني ملكي", "برتقالي نيون", "أخضر نيون", "وردي نيون", "أزرق نيون",
+    "ذهبي", "ذهبي لامع", "أصفر جديد", "برتقالي غامق", "أزرق عميق",
+    "كستنائي", "أحمر كستنائي"
+}
+
+local BodyActive = false
+local BodySpeed = 3
+
+RgbTab:AddSlider({
+    Name = "سرعة التلوين",
+    Min = 1,
+    Max = 10,
+    Default = 3,
+    Callback = function(Value)
+        BodySpeed = Value / 10
+    end
+})
+
+RgbTab:AddToggle({
+    Name = "تفعيل آر جي بي للجسم",
+    Default = false,
+    Callback = function(Value)
+        BodyActive = Value
+        if BodyActive then
+            task.spawn(function()
+                while BodyActive do
+                    for _, Color in ipairs(BodyColors) do
+                        if not BodyActive then break end
+                        ChangeBodyColor:FireServer(Color)
+                        task.wait(BodySpeed)
+                    end
+                end
+            end)
+        end
+    end
+})
+
+RgbTab:AddSection({ "الدراجة" })
+
+local SpeedRGB = 3
+local BicycleActive = false
+
+RgbTab:AddSlider({
+    Name = "سرعة التلوين",
+    Min = 1,
+    Max = 10,
+    Default = 3,
+    Callback = function(Value)
+        SpeedRGB = Value
+    end
+})
+
+local function GetRainbowColor(SpeedMultiplier)
+    local H = (tick() * SpeedMultiplier % 5) / 5
+    return Color3.fromHSV(H, 1, 1)
+end
+
+local function FireServer(EventName, Args)
+    local Event = ReplicatedStorage:FindFirstChild("RE")
+    if Event and Event:FindFirstChild(EventName) then
+        pcall(function()
+            Event[EventName]:FireServer(unpack(Args))
+        end)
+    end
+end
+
+RgbTab:AddToggle({
+    Name = "تفعيل آر جي بي للدراجة",
+    Default = false,
+    Callback = function(Value)
+        BicycleActive = Value
+        task.spawn(function()
+            while BicycleActive do
+                FireServer("1Player1sCa1r", {
+                    "NoMotorColor",
+                    GetRainbowColor(SpeedRGB)
+                })
+                task.wait(0.1)
+            end
+        end)
+    end
+})
