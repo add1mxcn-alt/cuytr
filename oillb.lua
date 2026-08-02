@@ -3943,8 +3943,8 @@ BoatsTab:AddButton({
 })
 
 local MiscTab = Window:MakeTab({
-    Title = "ترول متنوع",
-    Icon = "rbxassetid://87060218582359"
+    Title = "متنوع",
+    Icon = "rbxassetid://101969836917433"
 })
 
 MiscTab:AddSection({ "البيت" })
@@ -3955,6 +3955,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local SelectedHousePlayer = nil
 local LastRandomHouse = nil
+local AutoBanActive = false
 
 local function GetHousePlayerList()
     local Names = {}
@@ -4108,12 +4109,12 @@ MiscTab:AddToggle({
     Name = "حظر وقتل الكل بالبيت",
     Default = false,
     Callback = function(State)
-        _G.AutoBanActive = State
+        AutoBanActive = State
         if State then
             task.spawn(function()
-                while _G.AutoBanActive do
+                while AutoBanActive do
                     for _, p in ipairs(Players:GetPlayers()) do
-                        if not _G.AutoBanActive then break end
+                        if not AutoBanActive then break end
                         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") then
                             HouseBanKill(p)
                         end
@@ -4158,47 +4159,28 @@ MiscTab:AddButton({
 
 MiscTab:AddSection({ "سكاي بوكس" })
 
-local skyboxEnabled = false
-local skyboxTrack = nil
-local rigidTrack = nil
-local savedNukeBody = {}
+local SkyboxSettings = {
+    enabled = false,
+    track = nil,
+    rigidTrack = nil,
+    savedBody = {}
+}
 
-local function stopAllAnimations()
-    if rigidTrack then
+local function StopSkyboxAnimations()
+    if SkyboxSettings.rigidTrack then
         pcall(function()
-            rigidTrack:Stop()
-            rigidTrack:Destroy()
+            SkyboxSettings.rigidTrack:Stop()
+            SkyboxSettings.rigidTrack:Destroy()
         end)
-        rigidTrack = nil
+        SkyboxSettings.rigidTrack = nil
     end
     
-    if skyboxTrack then
+    if SkyboxSettings.track then
         pcall(function()
-            skyboxTrack:Stop()
-            skyboxTrack:Destroy()
+            SkyboxSettings.track:Stop()
+            SkyboxSettings.track:Destroy()
         end)
-        skyboxTrack = nil
-    end
-    
-    local player = game.Players.LocalPlayer
-    local character = player.Character
-    if character then
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid then
-            local animator = humanoid:FindFirstChild("Animator")
-            if animator then
-                for _, track in pairs(animator:GetPlayingAnimationTracks()) do
-                    if track.Animation then
-                        local animId = track.Animation.AnimationId
-                        if animId == "rbxassetid://70883871260184" or animId == "rbxassetid://3695333486" then
-                            pcall(function()
-                                track:Stop()
-                            end)
-                        end
-                    end
-                end
-            end
-        end
+        SkyboxSettings.track = nil
     end
 end
 
@@ -4206,8 +4188,6 @@ MiscTab:AddToggle({
     Name = "سكاي بوكس V1",
     Default = false,
     Callback = function(value)
-        skyboxEnabled = value
-        
         if value then
             local player = game.Players.LocalPlayer
             local character = player.Character
@@ -4217,7 +4197,7 @@ MiscTab:AddToggle({
                 if humanoid then
                     local description = humanoid:GetAppliedDescription()
                     
-                    savedNukeBody = {
+                    SkyboxSettings.savedBody = {
                         Torso = description.Torso,
                         RightArm = description.RightArm,
                         LeftArm = description.LeftArm,
@@ -4246,25 +4226,25 @@ MiscTab:AddToggle({
                     local newAnim = Instance.new("Animation")
                     newAnim.AnimationId = "rbxassetid://70883871260184"
                     
-                    skyboxTrack = humanoid:LoadAnimation(newAnim)
-                    skyboxTrack.Priority = Enum.AnimationPriority.Action4
-                    skyboxTrack:Play(0.1, 1, 0.01)
+                    SkyboxSettings.track = humanoid:LoadAnimation(newAnim)
+                    SkyboxSettings.track.Priority = Enum.AnimationPriority.Action4
+                    SkyboxSettings.track:Play(0.1, 1, 0.01)
                     
                     task.wait(0.5)
                     
                     local plankAnim = Instance.new("Animation")
                     plankAnim.AnimationId = "rbxassetid://3695333486"
-                    rigidTrack = humanoid:LoadAnimation(plankAnim)
-                    rigidTrack.Priority = Enum.AnimationPriority.Movement
-                    rigidTrack:Play(0.1, 1, 0)
+                    SkyboxSettings.rigidTrack = humanoid:LoadAnimation(plankAnim)
+                    SkyboxSettings.rigidTrack.Priority = Enum.AnimationPriority.Movement
+                    SkyboxSettings.rigidTrack:Play(0.1, 1, 0)
                 end
             end
         else
-            stopAllAnimations()
+            StopSkyboxAnimations()
             
             task.wait(0.2)
             
-            if next(savedNukeBody) then
+            if next(SkyboxSettings.savedBody) then
                 local player = game.Players.LocalPlayer
                 local character = player.Character
                 
@@ -4272,12 +4252,12 @@ MiscTab:AddToggle({
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
                     if humanoid then
                         local restoreBody = {
-                            [1] = savedNukeBody.Torso,
-                            [2] = savedNukeBody.RightArm,
-                            [3] = savedNukeBody.LeftArm,
-                            [4] = savedNukeBody.RightLeg,
-                            [5] = savedNukeBody.LeftLeg,
-                            [6] = savedNukeBody.Head
+                            [1] = SkyboxSettings.savedBody.Torso,
+                            [2] = SkyboxSettings.savedBody.RightArm,
+                            [3] = SkyboxSettings.savedBody.LeftArm,
+                            [4] = SkyboxSettings.savedBody.RightLeg,
+                            [5] = SkyboxSettings.savedBody.LeftLeg,
+                            [6] = SkyboxSettings.savedBody.Head
                         }
                         
                         local args = {
@@ -4288,7 +4268,7 @@ MiscTab:AddToggle({
                             game:GetService("ReplicatedStorage").Remotes.ChangeCharacterBody:InvokeServer(unpack(args))
                         end)
                         
-                        savedNukeBody = {}
+                        SkyboxSettings.savedBody = {}
                     end
                 end
             end
@@ -4296,26 +4276,28 @@ MiscTab:AddToggle({
     end
 })
 
-local nukeFlashEnabled = false
-local nukeFlashTrack = nil
-local flashRigidTrack = nil
-local savedNukeFlashBody = {}
+local FlashSettings = {
+    enabled = false,
+    track = nil,
+    rigidTrack = nil,
+    savedBody = {}
+}
 
-local function stopFlashAnimations()
-    if flashRigidTrack then
+local function StopFlashAnimations()
+    if FlashSettings.rigidTrack then
         pcall(function()
-            flashRigidTrack:Stop()
-            flashRigidTrack:Destroy()
+            FlashSettings.rigidTrack:Stop()
+            FlashSettings.rigidTrack:Destroy()
         end)
-        flashRigidTrack = nil
+        FlashSettings.rigidTrack = nil
     end
     
-    if nukeFlashTrack then
+    if FlashSettings.track then
         pcall(function()
-            nukeFlashTrack:Stop()
-            nukeFlashTrack:Destroy()
+            FlashSettings.track:Stop()
+            FlashSettings.track:Destroy()
         end)
-        nukeFlashTrack = nil
+        FlashSettings.track = nil
     end
 end
 
@@ -4323,8 +4305,6 @@ MiscTab:AddToggle({
     Name = "سكاي بوكس V2",
     Default = false,
     Callback = function(value)
-        nukeFlashEnabled = value
-        
         if value then
             local player = game.Players.LocalPlayer
             local character = player.Character
@@ -4334,7 +4314,7 @@ MiscTab:AddToggle({
                 if humanoid then
                     local description = humanoid:GetAppliedDescription()
                     
-                    savedNukeFlashBody = {
+                    FlashSettings.savedBody = {
                         Torso = description.Torso,
                         RightArm = description.RightArm,
                         LeftArm = description.LeftArm,
@@ -4363,28 +4343,28 @@ MiscTab:AddToggle({
                     local newAnim = Instance.new("Animation")
                     newAnim.AnimationId = "rbxassetid://70883871260184"
                     
-                    nukeFlashTrack = humanoid:LoadAnimation(newAnim)
-                    nukeFlashTrack.Priority = Enum.AnimationPriority.Action4
-                    nukeFlashTrack:Play(0.1, 1, 1)
+                    FlashSettings.track = humanoid:LoadAnimation(newAnim)
+                    FlashSettings.track.Priority = Enum.AnimationPriority.Action4
+                    FlashSettings.track:Play(0.1, 1, 1)
                     
                     task.wait(0.1)
-                    nukeFlashTrack:AdjustSpeed(5)
+                    FlashSettings.track:AdjustSpeed(5)
                     
                     task.wait(0.3)
                     
                     local plankAnim = Instance.new("Animation")
                     plankAnim.AnimationId = "rbxassetid://3695333486"
-                    flashRigidTrack = humanoid:LoadAnimation(plankAnim)
-                    flashRigidTrack.Priority = Enum.AnimationPriority.Movement
-                    flashRigidTrack:Play(0.1, 1, 0)
+                    FlashSettings.rigidTrack = humanoid:LoadAnimation(plankAnim)
+                    FlashSettings.rigidTrack.Priority = Enum.AnimationPriority.Movement
+                    FlashSettings.rigidTrack:Play(0.1, 1, 0)
                 end
             end
         else
-            stopFlashAnimations()
+            StopFlashAnimations()
             
             task.wait(0.2)
             
-            if next(savedNukeFlashBody) then
+            if next(FlashSettings.savedBody) then
                 local player = game.Players.LocalPlayer
                 local character = player.Character
                 
@@ -4392,12 +4372,12 @@ MiscTab:AddToggle({
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
                     if humanoid then
                         local restoreBody = {
-                            [1] = savedNukeFlashBody.Torso,
-                            [2] = savedNukeFlashBody.RightArm,
-                            [3] = savedNukeFlashBody.LeftArm,
-                            [4] = savedNukeFlashBody.RightLeg,
-                            [5] = savedNukeFlashBody.LeftLeg,
-                            [6] = savedNukeFlashBody.Head
+                            [1] = FlashSettings.savedBody.Torso,
+                            [2] = FlashSettings.savedBody.RightArm,
+                            [3] = FlashSettings.savedBody.LeftArm,
+                            [4] = FlashSettings.savedBody.RightLeg,
+                            [5] = FlashSettings.savedBody.LeftLeg,
+                            [6] = FlashSettings.savedBody.Head
                         }
                         
                         local args = {
@@ -4408,7 +4388,7 @@ MiscTab:AddToggle({
                             game:GetService("ReplicatedStorage").Remotes.ChangeCharacterBody:InvokeServer(unpack(args))
                         end)
                         
-                        savedNukeFlashBody = {}
+                        FlashSettings.savedBody = {}
                     end
                 end
             end
@@ -4416,11 +4396,11 @@ MiscTab:AddToggle({
     end
 })
 
-local LoopAnim = false
-local CurrentTrack
-local Initialized = false
+local LoopAnimV3 = false
+local CurrentTrackV3 = nil
+local InitializedV3 = false
 
-local function ApplyFreshBang()
+local function ApplyFreshBangV3()
     pcall(function()
         local args = {
             [1] = {
@@ -4436,7 +4416,7 @@ local function ApplyFreshBang()
     end)
 end
 
-local function PlayAnimation()
+local function PlayAnimationV3()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local humanoid = char:WaitForChild("Humanoid")
     local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
@@ -4449,17 +4429,17 @@ local function PlayAnimation()
     track.Looped = false
     track:Play()
 
-    CurrentTrack = track
+    CurrentTrackV3 = track
 end
 
-local function StopEverything()
-    LoopAnim = false
+local function StopEverythingV3()
+    LoopAnimV3 = false
 
-    if CurrentTrack then
+    if CurrentTrackV3 then
         pcall(function()
-            CurrentTrack:Stop()
+            CurrentTrackV3:Stop()
         end)
-        CurrentTrack = nil
+        CurrentTrackV3 = nil
     end
 
     pcall(function()
@@ -4481,25 +4461,25 @@ MiscTab:AddToggle({
     Name = "سكاي بوكس V3",
     Default = false,
     Callback = function(Value)
-        if not Initialized then
-            Initialized = true
+        if not InitializedV3 then
+            InitializedV3 = true
             return
         end
 
         if Value then
-            if LoopAnim then return end
-            LoopAnim = true
+            if LoopAnimV3 then return end
+            LoopAnimV3 = true
 
             task.spawn(function()
-                while LoopAnim do
-                    PlayAnimation()
+                while LoopAnimV3 do
+                    PlayAnimationV3()
                     task.wait(0.1)
                 end
             end)
 
-            task.delay(1.2, ApplyFreshBang)
+            task.delay(1.2, ApplyFreshBangV3)
         else
-            StopEverything()
+            StopEverythingV3()
         end
     end
 })
