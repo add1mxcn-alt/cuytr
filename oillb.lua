@@ -2681,7 +2681,7 @@ BodyTab:AddButton({ Name = "قزم 6", Callback = function() loadstring(game:Htt
 BodyTab:AddButton({ Name = "قزم 7", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/bruton-lua-sources/Mini-body/refs/heads/main/%D9%82%D8%B2%D9%85%207"))() end })
 
 local BoatsTab = Window:MakeTab({
-    Title = "القوارب",
+    Title = "ترول قوارب",
     Icon = "rbxassetid://101969836917433"
 })
 
@@ -3939,6 +3939,568 @@ BoatsTab:AddButton({
             local dir = (alvoRoot.Position - PCar.PrimaryPart.Position).Unit
             force.Force = dir * 1e6 + Vector3.new(0, workspace.Gravity * PCar.PrimaryPart:GetMass(), 0)
         end)
+    end
+})
+
+local MiscTab = Window:MakeTab({
+    Title = "ترول متنوع",
+    Icon = "rbxassetid://87060218582359"
+})
+
+MiscTab:AddSection({ "البيت" })
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local SelectedHousePlayer = nil
+local LastRandomHouse = nil
+
+local function GetHousePlayerList()
+    local Names = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(Names, p.Name)
+        end
+    end
+    return Names
+end
+
+local function HouseBanKill(Target)
+    if not Target or not Target.Character then return end
+
+    local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local Root = Char:WaitForChild("HumanoidRootPart")
+    local Hum = Char:WaitForChild("Humanoid")
+    local Houses = workspace:FindFirstChild("001_Lots")
+    local Vehicles = workspace.Vehicles
+    local OldPos = Root.CFrame
+
+    local MyHouse = Houses:FindFirstChild(LocalPlayer.Name .. "House")
+    local LotNumber = nil
+
+    if not MyHouse then
+        local Available = {}
+        for _, Lot in pairs(Houses:GetChildren()) do
+            if Lot.Name == "For Sale" then
+                for _, num in pairs(Lot:GetDescendants()) do
+                    if num:IsA("NumberValue") and num.Name == "Number" and num.Value <= 25 and num.Value >= 11 then
+                        table.insert(Available, {Lot = Lot, Number = num.Value})
+                        break
+                    end
+                end
+            end
+        end
+
+        if #Available > 0 then
+            local RandomHouse = Available[math.random(1, #Available)]
+            local EmptyHouse = RandomHouse.Lot
+            LotNumber = RandomHouse.Number
+            local BuyDetector = EmptyHouse:FindFirstChild("BuyHouse")
+
+            if BuyDetector then
+                Root.CFrame = BuyDetector.CFrame + Vector3.new(0, -6, 0)
+                task.wait(0.5)
+                fireclickdetector(BuyDetector:FindFirstChild("ClickDetector"))
+                
+                ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Lot:Claim"):InvokeServer(LotNumber)
+                task.wait(0.5)
+                ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("TelemetryClientInteraction"):FireServer("filterClick", {name = "052_House", itemType = "Houses"})
+                task.wait(0.5)
+                ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Lot:BuildProperty"):InvokeServer(LotNumber, "052_House")
+                task.wait(2)
+            end
+        else
+            return
+        end
+    else
+        for _, x in pairs(MyHouse:GetDescendants()) do
+            if x.Name == "Number" and x:IsA("NumberValue") then
+                LotNumber = x.Value
+                break
+            end
+        end
+    end
+
+    MyHouse = Houses:FindFirstChild(LocalPlayer.Name .. "House")
+    if not MyHouse then return end
+
+    local BusSpawn = CFrame.new(82.657265, 6.133477, -1368.286011)
+    Root.CFrame = BusSpawn
+    task.wait(1.5)
+
+    ReplicatedStorage.RE:FindFirstChild("1Ca1r"):FireServer("PickingCar", "Bus", "Work")
+    task.wait(2.5)
+
+    local Bus = Vehicles:FindFirstChild(LocalPlayer.Name .. "Car")
+    if Bus then
+        local Seat = Bus:FindFirstChild("Seats") and Bus.Seats:FindFirstChild("VehicleSeat")
+        if Seat then
+            repeat
+                Root.CFrame = Seat.CFrame * CFrame.new(0, 2, 0)
+                task.wait(0.1)
+                Seat:Sit(Hum)
+            until Hum.Sit or not Bus.Parent
+        end
+
+        local TChar = Target.Character
+        local TRoot = TChar:FindFirstChild("HumanoidRootPart")
+        local THum = TChar:FindFirstChildOfClass("Humanoid")
+
+        if TRoot and THum then
+            local Timer = tick()
+            while THum.Health > 0 and not THum.Sit and (tick() - Timer) < 15 do
+                task.wait()
+                local Time = tick() * 35
+                Bus:PivotTo(TRoot.CFrame * CFrame.new(math.sin(Time) * 4, 0, math.cos(Time) * 20))
+            end
+
+            if THum.Sit then
+                task.wait(1)
+                local HouseCenter = MyHouse:FindFirstChild("HouseSpawnPosition")
+                if HouseCenter then
+                    Bus:PivotTo(HouseCenter.CFrame + Vector3.new(0, 5, 0))
+                end
+                task.wait(1.5)
+                
+                ReplicatedStorage.RE:FindFirstChild("1Playe1rTrigge1rEven1t"):FireServer("BanPlayerFromHouse", Target, TChar)
+                
+                task.wait(1)
+                ReplicatedStorage.RE:FindFirstChild("1Ca1r"):FireServer("DeleteAllVehicles")
+                task.wait(0.5)
+                Hum.Sit = false
+                Root.CFrame = OldPos
+            end
+        end
+    end
+end
+
+local HousePlayerDropdown = MiscTab:AddDropdown({
+    Name = "اختيار اللاعب",
+    Options = GetHousePlayerList(),
+    Default = "",
+    Callback = function(Value)
+        SelectedHousePlayer = Value
+    end
+})
+
+MiscTab:AddButton({
+    Name = "تحديث قائمة اللاعبين",
+    Callback = function()
+        HousePlayerDropdown:Refresh(GetHousePlayerList(), true)
+    end
+})
+
+MiscTab:AddButton({
+    Name = "حظر وقتل بالبيت",
+    Callback = function()
+        if not SelectedHousePlayer then return end
+        local Target = Players:FindFirstChild(SelectedHousePlayer)
+        if Target then
+            HouseBanKill(Target)
+        end
+    end
+})
+
+MiscTab:AddSection({ "الكل بالبيت" })
+
+MiscTab:AddToggle({
+    Name = "حظر وقتل الكل بالبيت",
+    Default = false,
+    Callback = function(State)
+        _G.AutoBanActive = State
+        if State then
+            task.spawn(function()
+                while _G.AutoBanActive do
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if not _G.AutoBanActive then break end
+                        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") then
+                            HouseBanKill(p)
+                        end
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+MiscTab:AddSection({ "عشوائي بالبيت" })
+
+local function GetRandomHouseTarget()
+    local Available = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p ~= LastRandomHouse and p.Character and p.Character:FindFirstChild("Humanoid") then
+            local Hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if Hum and Hum.Health > 0 then
+                table.insert(Available, p)
+            end
+        end
+    end
+    if #Available == 0 then
+        LastRandomHouse = nil
+        return GetRandomHouseTarget()
+    end
+    local Chosen = Available[math.random(1, #Available)]
+    LastRandomHouse = Chosen
+    return Chosen
+end
+
+MiscTab:AddButton({
+    Name = "حظر وقتل عشوائي بالبيت",
+    Callback = function()
+        local Target = GetRandomHouseTarget()
+        if Target then
+            HouseBanKill(Target)
+        end
+    end
+})
+
+MiscTab:AddSection({ "سكاي بوكس" })
+
+local skyboxEnabled = false
+local skyboxTrack = nil
+local rigidTrack = nil
+local savedNukeBody = {}
+
+local function stopAllAnimations()
+    if rigidTrack then
+        pcall(function()
+            rigidTrack:Stop()
+            rigidTrack:Destroy()
+        end)
+        rigidTrack = nil
+    end
+    
+    if skyboxTrack then
+        pcall(function()
+            skyboxTrack:Stop()
+            skyboxTrack:Destroy()
+        end)
+        skyboxTrack = nil
+    end
+    
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            local animator = humanoid:FindFirstChild("Animator")
+            if animator then
+                for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                    if track.Animation then
+                        local animId = track.Animation.AnimationId
+                        if animId == "rbxassetid://70883871260184" or animId == "rbxassetid://3695333486" then
+                            pcall(function()
+                                track:Stop()
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+MiscTab:AddToggle({
+    Name = "سكاي بوكس V1",
+    Default = false,
+    Callback = function(value)
+        skyboxEnabled = value
+        
+        if value then
+            local player = game.Players.LocalPlayer
+            local character = player.Character
+            
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    local description = humanoid:GetAppliedDescription()
+                    
+                    savedNukeBody = {
+                        Torso = description.Torso,
+                        RightArm = description.RightArm,
+                        LeftArm = description.LeftArm,
+                        RightLeg = description.RightLeg,
+                        LeftLeg = description.LeftLeg,
+                        Head = description.Head
+                    }
+                    
+                    task.wait(0.2)
+                    
+                    local args = {
+                        [1] = 123402086843885,
+                        [2] = 100839513065432,
+                        [3] = 78300682916056,
+                        [4] = 86276701020724,
+                        [5] = 78409653958165,
+                        [6] = 15093053680
+                    }
+                    
+                    pcall(function()
+                        game:GetService("ReplicatedStorage").Remotes.ChangeCharacterBody:InvokeServer(args)
+                    end)
+                    
+                    task.wait(0.3)
+                    
+                    local newAnim = Instance.new("Animation")
+                    newAnim.AnimationId = "rbxassetid://70883871260184"
+                    
+                    skyboxTrack = humanoid:LoadAnimation(newAnim)
+                    skyboxTrack.Priority = Enum.AnimationPriority.Action4
+                    skyboxTrack:Play(0.1, 1, 0.01)
+                    
+                    task.wait(0.5)
+                    
+                    local plankAnim = Instance.new("Animation")
+                    plankAnim.AnimationId = "rbxassetid://3695333486"
+                    rigidTrack = humanoid:LoadAnimation(plankAnim)
+                    rigidTrack.Priority = Enum.AnimationPriority.Movement
+                    rigidTrack:Play(0.1, 1, 0)
+                end
+            end
+        else
+            stopAllAnimations()
+            
+            task.wait(0.2)
+            
+            if next(savedNukeBody) then
+                local player = game.Players.LocalPlayer
+                local character = player.Character
+                
+                if character then
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        local restoreBody = {
+                            [1] = savedNukeBody.Torso,
+                            [2] = savedNukeBody.RightArm,
+                            [3] = savedNukeBody.LeftArm,
+                            [4] = savedNukeBody.RightLeg,
+                            [5] = savedNukeBody.LeftLeg,
+                            [6] = savedNukeBody.Head
+                        }
+                        
+                        local args = {
+                            [1] = restoreBody
+                        }
+                        
+                        pcall(function()
+                            game:GetService("ReplicatedStorage").Remotes.ChangeCharacterBody:InvokeServer(unpack(args))
+                        end)
+                        
+                        savedNukeBody = {}
+                    end
+                end
+            end
+        end
+    end
+})
+
+local nukeFlashEnabled = false
+local nukeFlashTrack = nil
+local flashRigidTrack = nil
+local savedNukeFlashBody = {}
+
+local function stopFlashAnimations()
+    if flashRigidTrack then
+        pcall(function()
+            flashRigidTrack:Stop()
+            flashRigidTrack:Destroy()
+        end)
+        flashRigidTrack = nil
+    end
+    
+    if nukeFlashTrack then
+        pcall(function()
+            nukeFlashTrack:Stop()
+            nukeFlashTrack:Destroy()
+        end)
+        nukeFlashTrack = nil
+    end
+end
+
+MiscTab:AddToggle({
+    Name = "سكاي بوكس V2",
+    Default = false,
+    Callback = function(value)
+        nukeFlashEnabled = value
+        
+        if value then
+            local player = game.Players.LocalPlayer
+            local character = player.Character
+            
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    local description = humanoid:GetAppliedDescription()
+                    
+                    savedNukeFlashBody = {
+                        Torso = description.Torso,
+                        RightArm = description.RightArm,
+                        LeftArm = description.LeftArm,
+                        RightLeg = description.RightLeg,
+                        LeftLeg = description.LeftLeg,
+                        Head = description.Head
+                    }
+                    
+                    task.wait(0.2)
+                    
+                    local args = {
+                        [1] = 123402086843885,
+                        [2] = 100839513065432,
+                        [3] = 78300682916056,
+                        [4] = 86276701020724,
+                        [5] = 78409653958165,
+                        [6] = 15093053680
+                    }
+                    
+                    pcall(function()
+                        game:GetService("ReplicatedStorage").Remotes.ChangeCharacterBody:InvokeServer(args)
+                    end)
+                    
+                    task.wait(0.3)
+                    
+                    local newAnim = Instance.new("Animation")
+                    newAnim.AnimationId = "rbxassetid://70883871260184"
+                    
+                    nukeFlashTrack = humanoid:LoadAnimation(newAnim)
+                    nukeFlashTrack.Priority = Enum.AnimationPriority.Action4
+                    nukeFlashTrack:Play(0.1, 1, 1)
+                    
+                    task.wait(0.1)
+                    nukeFlashTrack:AdjustSpeed(5)
+                    
+                    task.wait(0.3)
+                    
+                    local plankAnim = Instance.new("Animation")
+                    plankAnim.AnimationId = "rbxassetid://3695333486"
+                    flashRigidTrack = humanoid:LoadAnimation(plankAnim)
+                    flashRigidTrack.Priority = Enum.AnimationPriority.Movement
+                    flashRigidTrack:Play(0.1, 1, 0)
+                end
+            end
+        else
+            stopFlashAnimations()
+            
+            task.wait(0.2)
+            
+            if next(savedNukeFlashBody) then
+                local player = game.Players.LocalPlayer
+                local character = player.Character
+                
+                if character then
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        local restoreBody = {
+                            [1] = savedNukeFlashBody.Torso,
+                            [2] = savedNukeFlashBody.RightArm,
+                            [3] = savedNukeFlashBody.LeftArm,
+                            [4] = savedNukeFlashBody.RightLeg,
+                            [5] = savedNukeFlashBody.LeftLeg,
+                            [6] = savedNukeFlashBody.Head
+                        }
+                        
+                        local args = {
+                            [1] = restoreBody
+                        }
+                        
+                        pcall(function()
+                            game:GetService("ReplicatedStorage").Remotes.ChangeCharacterBody:InvokeServer(unpack(args))
+                        end)
+                        
+                        savedNukeFlashBody = {}
+                    end
+                end
+            end
+        end
+    end
+})
+
+local LoopAnim = false
+local CurrentTrack
+local Initialized = false
+
+local function ApplyFreshBang()
+    pcall(function()
+        local args = {
+            [1] = {
+                96655874457685,
+                123402086843885,
+                78300682916056,
+                86276701020724,
+                78409653958165,
+                120668655481073
+            }
+        }
+        game:GetService("ReplicatedStorage").Remotes.ChangeCharacterBody:InvokeServer(unpack(args))
+    end)
+end
+
+local function PlayAnimation()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://70883871260184"
+
+    local track = animator:LoadAnimation(anim)
+    track.Priority = Enum.AnimationPriority.Action
+    track.Looped = false
+    track:Play()
+
+    CurrentTrack = track
+end
+
+local function StopEverything()
+    LoopAnim = false
+
+    if CurrentTrack then
+        pcall(function()
+            CurrentTrack:Stop()
+        end)
+        CurrentTrack = nil
+    end
+
+    pcall(function()
+        game:GetService("ReplicatedStorage").Remotes.ResetCharacterAppearance:FireServer()
+    end)
+
+    task.wait(0.5)
+
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.Health = 0
+        end
+    end
+end
+
+MiscTab:AddToggle({
+    Name = "سكاي بوكس V3",
+    Default = false,
+    Callback = function(Value)
+        if not Initialized then
+            Initialized = true
+            return
+        end
+
+        if Value then
+            if LoopAnim then return end
+            LoopAnim = true
+
+            task.spawn(function()
+                while LoopAnim do
+                    PlayAnimation()
+                    task.wait(0.1)
+                end
+            end)
+
+            task.delay(1.2, ApplyFreshBang)
+        else
+            StopEverything()
+        end
     end
 })
 
