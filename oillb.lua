@@ -342,7 +342,7 @@ local noclipActive = false
 local noclipConnection = nil
 local currentConnection = nil
 local respawnConnection = nil
-local targetRejoined = false
+local animationTrack = nil
 
 local bangSpeeds = {
     ["بانق"] = 0.5,
@@ -372,7 +372,6 @@ local BangDropdown = BangTab:AddDropdown({
             if plr then
                 BangSelected = plr
                 targetLeftNotified = false
-                targetRejoined = false
                 game:GetService("StarterGui"):SetCore("SendNotification", {
                     Title = "Onyxen Hub",
                     Text = "تم تحديد: " .. plr.DisplayName,
@@ -382,7 +381,6 @@ local BangDropdown = BangTab:AddDropdown({
         else
             BangSelected = nil
             targetLeftNotified = false
-            targetRejoined = false
         end
     end
 })
@@ -448,6 +446,31 @@ local function DisableNoclip()
     end
 end
 
+local function FreezeCharacter()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        if animationTrack then
+            animationTrack:Stop()
+            animationTrack = nil
+        end
+        
+        humanoid.PlatformStand = true
+    end
+end
+
+local function UnfreezeCharacter()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = false
+    end
+end
+
 local function startBangLoop()
     if currentConnection then 
         currentConnection:Disconnect() 
@@ -496,6 +519,8 @@ local function startBangLoop()
         local charHRP = char.HumanoidRootPart
         
         if targetHRP and charHRP then
+            FreezeCharacter()
+            
             if selectedBangType == "بانق للوجه" then
                 local offset = togglePosition and 1 or 3
                 local targetCFrame = targetHRP.CFrame
@@ -534,6 +559,7 @@ BangTab:AddToggle({
             
             targetLeftNotified = false
             EnableNoclip()
+            FreezeCharacter()
             startBangLoop()
             
             if respawnConnection then
@@ -548,6 +574,7 @@ BangTab:AddToggle({
                         currentConnection:Disconnect()
                         currentConnection = nil
                     end
+                    FreezeCharacter()
                     startBangLoop()
                     game:GetService("StarterGui"):SetCore("SendNotification", {
                         Title = "Onyxen Hub",
@@ -567,6 +594,7 @@ BangTab:AddToggle({
             end
             togglePosition = false
             targetLeftNotified = false
+            UnfreezeCharacter()
             DisableNoclip()
         end
     end
