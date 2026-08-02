@@ -2494,7 +2494,7 @@ TrollTab:AddSlider({
 })
 
 TrollTab:AddToggle({
-    Name = "مدار الكره مع الفلنق",
+    Name = "تفعيل الحماية",
     Default = false,
     Callback = function(State)
         OrbitSettings.Fling = State
@@ -2505,6 +2505,7 @@ local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local OrbitActive = false
 local OrbitBall = nil
@@ -2517,17 +2518,32 @@ local function GetOrCreateBall()
     local ServerBalls = workspace:WaitForChild("WorkspaceCom"):WaitForChild("001_SoccerBalls")
     
     if not Backpack:FindFirstChild("SoccerBall") and not Character:FindFirstChild("SoccerBall") then
-        game:GetService("ReplicatedStorage").RE:FindFirstChild("1Too1l"):InvokeServer("PickingTools", "SoccerBall")
+        ReplicatedStorage.RE:FindFirstChild("1Too1l"):InvokeServer("PickingTools", "SoccerBall")
     end
     
     repeat task.wait() until Backpack:FindFirstChild("SoccerBall") or Character:FindFirstChild("SoccerBall")
     
-    local BallTool = Backpack:FindFirstChild("SoccerBall")
-    if BallTool then BallTool.Parent = Character end
+    local BallTool = Backpack:FindFirstChild("SoccerBall") or Character:FindFirstChild("SoccerBall")
+    if BallTool and BallTool.Parent == Backpack then
+        BallTool.Parent = Character 
+    end
     
-    repeat task.wait() until ServerBalls:FindFirstChild("Soccer"..Player.Name)
+    local VirtualUser = game:GetService("VirtualUser")
+    VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    task.wait(0.05)
+    VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
     
-    local Ball = ServerBalls:FindFirstChild("Soccer"..Player.Name)
+    local Ball
+    local StartTime = tick()
+    repeat 
+        task.wait()
+        Ball = ServerBalls:FindFirstChild("Soccer"..Player.Name)
+    until Ball or (tick() - StartTime) > 3
+    
+    if BallTool then 
+        pcall(function() BallTool.Parent = Backpack end)
+    end
+    
     if Ball then
         Ball.CanCollide = false
         Ball.Massless = true
@@ -2568,14 +2584,9 @@ local function FlingTarget(Target)
             Ball.CFrame = CFrame.new(Vector3.new(PosX, PosY, PosZ))
             Ball.Orientation += Vector3.new(45, 60, 30)
         else
-            for _, v in pairs(TChar:GetChildren()) do
-                if v:IsA("BasePart") and v.CanCollide and not v.Anchored then
-                    Ball.CFrame = v.CFrame
-                    task.wait(1/6000)
-                end
-            end
+            Ball.CFrame = TRoot.CFrame * CFrame.new(0, 2, 0)
         end
-        task.wait(1/6000)
+        task.wait()
     until not TChar or not TChar.Parent or TRoot.Velocity.Magnitude > 1000 or THum.Health <= 0 or (tick() - StartTime) > 3
     
     if Ball:FindFirstChild("FlingPower") then
@@ -2584,8 +2595,7 @@ local function FlingTarget(Target)
 end
 
 local function CheckNearbyPlayers()
-    if not OrbitActive then return end
-    if not OrbitSettings.Fling then return end
+    if not OrbitActive or not OrbitSettings.Fling then return end
     
     local Char = LocalPlayer.Character
     if not Char then return end
@@ -2601,9 +2611,7 @@ local function CheckNearbyPlayers()
                 if TRoot then
                     local Distance = (HRP.Position - TRoot.Position).Magnitude
                     if Distance < OrbitSettings.Distance + 3 then
-                        task.spawn(function()
-                            FlingTarget(Target)
-                        end)
+                        task.spawn(FlingTarget, Target)
                     end
                 end
             end
@@ -2612,7 +2620,7 @@ local function CheckNearbyPlayers()
 end
 
 TrollTab:AddToggle({
-    Name = "مدار الكره",
+    Name = "تفعيل مدار الكره",
     Default = false,
     Callback = function(State)
         OrbitActive = State
@@ -2624,10 +2632,13 @@ TrollTab:AddToggle({
         
         if State then
             OrbitBall = GetOrCreateBall()
-            if not OrbitBall then return end
+            if not OrbitBall then
+                warn("ماكو كره")
+                OrbitActive = false
+                return
+            end
             
             local Angle = 0
-            local OriginalCamera = workspace.CurrentCamera.CameraSubject
             
             OrbitConnection = RunService.Heartbeat:Connect(function()
                 if not OrbitActive or not OrbitBall or not OrbitBall.Parent then
@@ -2651,9 +2662,7 @@ TrollTab:AddToggle({
                 
                 OrbitBall.CFrame = HRP.CFrame * Offset
                 
-                if OrbitSettings.Fling then
-                    CheckNearbyPlayers()
-                end
+                CheckNearbyPlayers()
             end)
             
         else
