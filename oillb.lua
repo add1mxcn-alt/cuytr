@@ -1006,13 +1006,13 @@ local BangTab = Window:MakeTab({
     Icon = "rbxassetid://75014710749916"
 })
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local BangPlayers = game:GetService("Players")
+local BangRunService = game:GetService("RunService")
 
 local function GetBangPlayerNames()
     local names = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer then
+    for _, player in ipairs(BangPlayers:GetPlayers()) do
+        if player ~= BangPlayers.LocalPlayer then
             table.insert(names, player.Name)
         end
     end
@@ -1027,7 +1027,7 @@ local BangPlayerDropdown = BangTab:AddDropdown({
     Multi = false,
     Options = GetBangPlayerNames(),
     Callback = function(name)
-        selectedBangPlayer = Players:FindFirstChild(name)
+        selectedBangPlayer = BangPlayers:FindFirstChild(name)
     end
 })
 
@@ -1039,7 +1039,7 @@ BangTab:AddButton({
 })
 
 local function enableBangNoclip()
-    local player = Players.LocalPlayer
+    local player = BangPlayers.LocalPlayer
     local char = player.Character
     if not char then return end
     for _, part in ipairs(char:GetDescendants()) do
@@ -1050,7 +1050,7 @@ local function enableBangNoclip()
 end
 
 local function disableBangNoclip()
-    local player = Players.LocalPlayer
+    local player = BangPlayers.LocalPlayer
     local char = player.Character
     if not char then return end
     for _, part in ipairs(char:GetDescendants()) do
@@ -1068,7 +1068,7 @@ local function createBangToggle(name, yOffset, faceBang)
     local currentHumanoid = nil
 
     local function startBang()
-        local player = Players.LocalPlayer
+        local player = BangPlayers.LocalPlayer
         currentChar = player.Character
         if not currentChar then return end
 
@@ -1080,7 +1080,7 @@ local function createBangToggle(name, yOffset, faceBang)
 
         if connection then connection:Disconnect() end
 
-        connection = RunService.Heartbeat:Connect(function()
+        connection = BangRunService.Heartbeat:Connect(function()
             if bangActive and selectedBangPlayer then
                 local targetChar = selectedBangPlayer.Character
                 if targetChar and targetChar.PrimaryPart then
@@ -1116,7 +1116,7 @@ local function createBangToggle(name, yOffset, faceBang)
         Default = false,
         Callback = function(Value)
             bangActive = Value
-            local player = Players.LocalPlayer
+            local player = BangPlayers.LocalPlayer
 
             if Value then
                 startBang()
