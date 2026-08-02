@@ -2680,7 +2680,1267 @@ BodyTab:AddButton({ Name = "قزم 5", Callback = function() loadstring(game:Htt
 BodyTab:AddButton({ Name = "قزم 6", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/bruton-lua-sources/Mini-body/refs/heads/main/%D9%82%D8%B2%D9%85%206"))() end })
 BodyTab:AddButton({ Name = "قزم 7", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/bruton-lua-sources/Mini-body/refs/heads/main/%D9%82%D8%B2%D9%85%207"))() end })
 
+local BoatsTab = Window:MakeTab({
+    Title = "القوارب",
+    Icon = "rbxassetid://101969836917433"
+})
 
+BoatsTab:AddSection({ "القارب الخشبي" })
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local SelectedBoatPlayer = nil
+local LastRandomBoat = nil
+
+local function GetBoatPlayerNames()
+    local t = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(t, p.Name)
+        end
+    end
+    return t
+end
+
+local BoatPlayerDropdown = BoatsTab:AddDropdown({
+    Name = "اختيار اللاعب",
+    Default = "",
+    Multi = false,
+    Options = GetBoatPlayerNames(),
+    Callback = function(PlayerName)
+        SelectedBoatPlayer = PlayerName
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "تحديث قائمة اللاعبين",
+    Callback = function()
+        BoatPlayerDropdown:Set(GetBoatPlayerNames())
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "قتل بالقارب الخشبي",
+    Callback = function()
+        if not SelectedBoatPlayer then return end
+        local Target = Players:FindFirstChild(SelectedBoatPlayer)
+        if not Target or not Target.Character then return end
+        
+        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local Root = Char:WaitForChild("HumanoidRootPart")
+        local Hum = Char:WaitForChild("Humanoid")
+        local OldPos = Root.CFrame
+
+        if Hum.Sit then
+            Hum.Sit = false
+            task.wait(0.5)
+        end
+
+        Root.CFrame = workspace.WorkspaceCom["001_CanoeCloneButton"].Button.CFrame
+        task.wait(0.5)
+        fireclickdetector(workspace.WorkspaceCom["001_CanoeCloneButton"].Button.ClickDetector, 0)
+        task.wait(0.8)
+
+        local Boat = workspace.WorkspaceCom["001_CanoeStorage"]:WaitForChild("Canoe")
+        local Seat = Boat:WaitForChild("VehicleSeat")
+        Boat.PrimaryPart = Seat
+
+        local Attempts = 0
+        repeat
+            Root.CFrame = Seat.CFrame * CFrame.new(0, 2, 0)
+            task.wait(0.1)
+            Seat:Sit(Hum)
+            Attempts = Attempts + 1
+        until Hum.Sit or Attempts > 50
+
+        if not Hum.Sit then return end
+
+        local TChar = Target.Character
+        local TRoot = TChar:FindFirstChild("HumanoidRootPart")
+        local THum = TChar:FindFirstChildOfClass("Humanoid")
+
+        if TRoot and THum then
+            local Timer = tick()
+            while THum.Health > 0 and not THum.Sit and (tick() - Timer) < 15 do
+                task.wait()
+                local Ang = CFrame.Angles(math.rad(math.random(-360, 360)), math.rad(math.random(-360, 360)), math.rad(math.random(-360, 360)))
+                Boat:SetPrimaryPartCFrame(CFrame.new(TRoot.Position) * Ang)
+            end
+        end
+
+        Boat:SetPrimaryPartCFrame(CFrame.new(0, -500, 0))
+        task.wait(0.2)
+        Hum.Sit = false
+        task.wait(0.3)
+        Root.CFrame = OldPos
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "دوران بالقارب الخشبي",
+    Callback = function()
+        if not SelectedBoatPlayer then return end
+        local Target = Players:FindFirstChild(SelectedBoatPlayer)
+        if not Target then return end
+
+        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local Root = Char:WaitForChild("HumanoidRootPart")
+        local Hum = Char:WaitForChild("Humanoid")
+
+        if Hum.Sit then
+            Hum.Sit = false
+            task.wait(0.5)
+        end
+
+        Root.CFrame = workspace.WorkspaceCom["001_CanoeCloneButton"].Button.CFrame
+        task.wait(0.4)
+        fireclickdetector(workspace.WorkspaceCom["001_CanoeCloneButton"].Button.ClickDetector, 0)
+        task.wait(0.4)
+
+        local Boat = workspace.WorkspaceCom["001_CanoeStorage"].Canoe
+        local Seat = Boat:FindFirstChild("VehicleSeat")
+        Boat.PrimaryPart = Seat
+
+        local Attempts = 0
+        repeat
+            Root.CFrame = Seat.CFrame * CFrame.new(0, 2, 0)
+            task.wait(0.05)
+            Seat:Sit(Hum)
+            Attempts = Attempts + 1
+        until Hum.Sit or Attempts > 100
+
+        if not Hum.Sit then return end
+
+        local TChar = Target.Character
+        local TRoot = TChar:WaitForChild("HumanoidRootPart")
+        local THum = TChar:WaitForChild("Humanoid")
+
+        local Force = Instance.new("BodyForce", Boat.PrimaryPart)
+        local Angular = Instance.new("BodyAngularVelocity", Boat.PrimaryPart)
+        Angular.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        Angular.AngularVelocity = Vector3.new(1000, 5000, 1000)
+        Angular.P = 1e9
+
+        local Start = tick()
+        while tick() - Start < 10 and Hum.Sit and TChar and THum and THum.Health > 0 do
+            local Time = tick() * 30
+            local Offset = TRoot.CFrame.LookVector * 10 * (math.sin(Time) > 0 and 1 or -1)
+            Boat:SetPrimaryPartCFrame(CFrame.new(TRoot.Position + Offset, TRoot.Position))
+            Force.Force = (TRoot.Position - Boat.PrimaryPart.Position).Unit * 1e6 + Vector3.new(0, workspace.Gravity * Boat.PrimaryPart:GetMass(), 0)
+            task.wait()
+        end
+
+        Force:Destroy()
+        Angular:Destroy()
+        Hum.Sit = false
+    end
+})
+
+BoatsTab:AddToggle({
+    Name = "سحب بالقارب الخشبي",
+    Default = false,
+    Callback = function(Value)
+        _G.PullToggleBoat = Value
+        if _G.PullToggleBoat then
+            task.spawn(function()
+                if not SelectedBoatPlayer then return end
+                local Target = Players:FindFirstChild(SelectedBoatPlayer)
+                if not Target or not Target.Character then return end
+
+                local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local Root = Char:WaitForChild("HumanoidRootPart")
+                local Hum = Char:WaitForChild("Humanoid")
+                local OldPos = Root.CFrame
+
+                if Hum.Sit then
+                    Hum.Sit = false
+                    task.wait(0.5)
+                end
+
+                Root.CFrame = workspace.WorkspaceCom["001_CanoeCloneButton"].Button.CFrame
+                task.wait(0.8)
+                fireclickdetector(workspace.WorkspaceCom["001_CanoeCloneButton"].Button.ClickDetector, 0)
+                task.wait(1)
+
+                local Boat = workspace.WorkspaceCom["001_CanoeStorage"]:WaitForChild("Canoe")
+                local Seat = Boat:WaitForChild("VehicleSeat")
+                Boat.PrimaryPart = Seat
+
+                local Attempts = 0
+                repeat
+                    Root.CFrame = Seat.CFrame * CFrame.new(0, 2, 0)
+                    task.wait(0.1)
+                    Seat:Sit(Hum)
+                    Attempts = Attempts + 1
+                until Hum.Sit or Attempts > 50 or not _G.PullToggleBoat
+
+                if not Hum.Sit then return end
+
+                local TChar = Target.Character
+                local TRoot = TChar:FindFirstChild("HumanoidRootPart")
+                local THum = TChar:FindFirstChildOfClass("Humanoid")
+
+                if TRoot and THum then
+                    local Timer = tick()
+                    while _G.PullToggleBoat and THum.Health > 0 and not THum.Sit and (tick() - Timer) < 15 do
+                        task.wait()
+                        local Time = tick() * 35
+                        Boat:SetPrimaryPartCFrame(TRoot.CFrame * CFrame.new(math.sin(Time) * 4, 0, math.cos(Time) * 15))
+                    end
+
+                    if THum.Sit then
+                        task.wait(0.8)
+                        Boat:SetPrimaryPartCFrame(OldPos)
+                        task.wait(1.5)
+                    end
+                end
+
+                Hum.Sit = false
+                task.wait(0.5)
+                Root.CFrame = OldPos + Vector3.new(0, 3, 0)
+                Root.Anchored = true
+                task.wait(1)
+                Root.Anchored = false
+            end)
+        end
+    end
+})
+
+BoatsTab:AddSection({ "الكل بالقارب الخشبي" })
+
+BoatsTab:AddToggle({
+    Name = "قتل الكل بالقارب الخشبي",
+    Default = false,
+    Callback = function(Value)
+        _G.KillAllBoats = Value
+        if _G.KillAllBoats then
+            task.spawn(function()
+                while _G.KillAllBoats do
+                    for _, Target in ipairs(Players:GetPlayers()) do
+                        if not _G.KillAllBoats then break end
+                        if Target ~= LocalPlayer and Target.Character then
+                            local TChar = Target.Character
+                            local TRoot = TChar:FindFirstChild("HumanoidRootPart")
+                            local THum = TChar:FindFirstChildOfClass("Humanoid")
+                            if TRoot and THum and THum.Health > 0 and not THum.Sit then
+                                local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                                local Root = Char:WaitForChild("HumanoidRootPart")
+                                local Hum = Char:WaitForChild("Humanoid")
+                                local OldPos = Root.CFrame
+
+                                if Hum.Sit then
+                                    Hum.Sit = false
+                                    task.wait(0.3)
+                                end
+
+                                Root.CFrame = workspace.WorkspaceCom["001_CanoeCloneButton"].Button.CFrame
+                                task.wait(0.6)
+                                fireclickdetector(workspace.WorkspaceCom["001_CanoeCloneButton"].Button.ClickDetector, 0)
+                                task.wait(0.8)
+
+                                local BoatFolder = workspace.WorkspaceCom["001_CanoeStorage"]
+                                local AllBoats = BoatFolder:GetChildren()
+                                local LatestBoat = AllBoats[#AllBoats]
+
+                                if LatestBoat and LatestBoat:FindFirstChild("VehicleSeat") then
+                                    local Seat = LatestBoat.VehicleSeat
+                                    LatestBoat.PrimaryPart = Seat
+
+                                    local Attempts = 0
+                                    repeat
+                                        Root.CFrame = Seat.CFrame * CFrame.new(0, 2, 0)
+                                        task.wait(0.1)
+                                        Seat:Sit(Hum)
+                                        Attempts = Attempts + 1
+                                    until Hum.Sit or Attempts > 40 or not _G.KillAllBoats
+
+                                    if Hum.Sit then
+                                        local Timer = tick()
+                                        while THum.Health > 0 and not THum.Sit and _G.KillAllBoats and (tick() - Timer) < 10 do
+                                            task.wait()
+                                            local Ang = CFrame.Angles(math.rad(math.random(-360, 360)), math.rad(math.random(-360, 360)), math.rad(math.random(-360, 360)))
+                                            LatestBoat:SetPrimaryPartCFrame(CFrame.new(TRoot.Position) * Ang)
+                                        end
+
+                                        LatestBoat:SetPrimaryPartCFrame(CFrame.new(0, -1000, 0))
+                                        task.wait(0.2)
+                                        Hum.Sit = false
+                                        task.wait(0.4)
+                                        Root.CFrame = OldPos
+                                        task.wait(0.5)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+BoatsTab:AddToggle({
+    Name = "سحب الكل بالقارب الخشبي",
+    Default = false,
+    Callback = function(Value)
+        _G.PullAllBoats = Value
+        if _G.PullAllBoats then
+            task.spawn(function()
+                while _G.PullAllBoats do
+                    for _, Target in ipairs(Players:GetPlayers()) do
+                        if not _G.PullAllBoats then break end
+                        if Target ~= LocalPlayer and Target.Character then
+                            local TChar = Target.Character
+                            local TRoot = TChar:FindFirstChild("HumanoidRootPart")
+                            local THum = TChar:FindFirstChildOfClass("Humanoid")
+                            if TRoot and THum and THum.Health > 0 and not THum.Sit then
+                                local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                                local Root = Char:WaitForChild("HumanoidRootPart")
+                                local Hum = Char:WaitForChild("Humanoid")
+                                local OldPos = Root.CFrame
+
+                                if Hum.Sit then
+                                    Hum.Sit = false
+                                    task.wait(0.5)
+                                end
+
+                                Root.CFrame = workspace.WorkspaceCom["001_CanoeCloneButton"].Button.CFrame
+                                task.wait(0.8)
+                                if not _G.PullAllBoats then break end
+                                fireclickdetector(workspace.WorkspaceCom["001_CanoeCloneButton"].Button.ClickDetector, 0)
+                                task.wait(1)
+
+                                local Boat = workspace.WorkspaceCom["001_CanoeStorage"]:WaitForChild("Canoe")
+                                local Seat = Boat:WaitForChild("VehicleSeat")
+                                Boat.PrimaryPart = Seat
+
+                                local Attempts = 0
+                                repeat
+                                    Root.CFrame = Seat.CFrame * CFrame.new(0, 2, 0)
+                                    task.wait(0.1)
+                                    Seat:Sit(Hum)
+                                    Attempts = Attempts + 1
+                                until Hum.Sit or Attempts > 40 or not _G.PullAllBoats
+
+                                if Hum.Sit then
+                                    local Timer = tick()
+                                    while _G.PullAllBoats and THum.Health > 0 and not THum.Sit and (tick() - Timer) < 10 do
+                                        task.wait()
+                                        local Time = tick() * 35
+                                        Boat:SetPrimaryPartCFrame(TRoot.CFrame * CFrame.new(math.sin(Time) * 4, 0, math.cos(Time) * 15))
+                                    end
+
+                                    if THum.Sit then
+                                        task.wait(0.8)
+                                        Boat:SetPrimaryPartCFrame(OldPos)
+                                        task.wait(1.5)
+                                    end
+
+                                    Hum.Sit = false
+                                    task.wait(0.5)
+                                    Root.CFrame = OldPos + Vector3.new(0, 3, 0)
+                                    Root.Anchored = true
+                                    task.wait(1)
+                                    Root.Anchored = false
+                                    task.wait(1)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(2)
+                end
+            end)
+        end
+    end
+})
+
+BoatsTab:AddSection({ "عشوائي القارب الخشبي" })
+
+local function GetRandomBoatTarget()
+    local Available = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p ~= LastRandomBoat and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local Hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if Hum and Hum.Health > 0 then
+                table.insert(Available, p)
+            end
+        end
+    end
+    if #Available == 0 then
+        LastRandomBoat = nil
+        return GetRandomBoatTarget()
+    end
+    local Chosen = Available[math.random(1, #Available)]
+    LastRandomBoat = Chosen
+    return Chosen
+end
+
+BoatsTab:AddButton({
+    Name = "قتل عشوائي بالقارب",
+    Callback = function()
+        local Target = GetRandomBoatTarget()
+        if not Target then return end
+        
+        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local Root = Char:WaitForChild("HumanoidRootPart")
+        local Hum = Char:WaitForChild("Humanoid")
+        local OldPos = Root.CFrame
+
+        if Hum.Sit then
+            Hum.Sit = false
+            task.wait(0.5)
+        end
+
+        Root.CFrame = workspace.WorkspaceCom["001_CanoeCloneButton"].Button.CFrame
+        task.wait(0.5)
+        fireclickdetector(workspace.WorkspaceCom["001_CanoeCloneButton"].Button.ClickDetector, 0)
+        task.wait(0.8)
+
+        local Boat = workspace.WorkspaceCom["001_CanoeStorage"]:WaitForChild("Canoe")
+        local Seat = Boat:WaitForChild("VehicleSeat")
+        Boat.PrimaryPart = Seat
+
+        local Attempts = 0
+        repeat
+            Root.CFrame = Seat.CFrame * CFrame.new(0, 2, 0)
+            task.wait(0.1)
+            Seat:Sit(Hum)
+            Attempts = Attempts + 1
+        until Hum.Sit or Attempts > 50
+
+        if not Hum.Sit then return end
+
+        local TChar = Target.Character
+        local TRoot = TChar:FindFirstChild("HumanoidRootPart")
+        local THum = TChar:FindFirstChildOfClass("Humanoid")
+
+        if TRoot and THum then
+            local Timer = tick()
+            while THum.Health > 0 and not THum.Sit and (tick() - Timer) < 12 do
+                task.wait()
+                local Ang = CFrame.Angles(math.rad(math.random(-360, 360)), math.rad(math.random(-360, 360)), math.rad(math.random(-360, 360)))
+                Boat:SetPrimaryPartCFrame(CFrame.new(TRoot.Position) * Ang)
+            end
+        end
+
+        Boat:SetPrimaryPartCFrame(CFrame.new(0, -500, 0))
+        task.wait(0.2)
+        Hum.Sit = false
+        task.wait(0.3)
+        Root.CFrame = OldPos
+    end
+})
+
+BoatsTab:AddToggle({
+    Name = "سحب عشوائي بالقارب الخشبي",
+    Default = false,
+    Callback = function(Value)
+        _G.PullRandomBoat = Value
+        if not _G.PullRandomBoat then return end
+        
+        task.spawn(function()
+            local Target = GetRandomBoatTarget()
+            if not Target then return end
+
+            local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local Root = Char:WaitForChild("HumanoidRootPart")
+            local Hum = Char:WaitForChild("Humanoid")
+            local OldPos = Root.CFrame
+
+            if Hum.Sit then
+                Hum.Sit = false
+                task.wait(0.5)
+            end
+
+            Root.CFrame = workspace.WorkspaceCom["001_CanoeCloneButton"].Button.CFrame
+            task.wait(0.8)
+            fireclickdetector(workspace.WorkspaceCom["001_CanoeCloneButton"].Button.ClickDetector, 0)
+            task.wait(1)
+
+            local Boat = workspace.WorkspaceCom["001_CanoeStorage"]:WaitForChild("Canoe")
+            local Seat = Boat:WaitForChild("VehicleSeat")
+            Boat.PrimaryPart = Seat
+
+            local Attempts = 0
+            repeat
+                Root.CFrame = Seat.CFrame * CFrame.new(0, 2, 0)
+                task.wait(0.1)
+                Seat:Sit(Hum)
+                Attempts = Attempts + 1
+            until Hum.Sit or Attempts > 50
+
+            if not Hum.Sit then return end
+
+            local TChar = Target.Character
+            local TRoot = TChar:FindFirstChild("HumanoidRootPart")
+            local THum = TChar:FindFirstChildOfClass("Humanoid")
+
+            local Timer = tick()
+            while _G.PullRandomBoat and THum.Health > 0 and not THum.Sit and (tick() - Timer) < 15 do
+                task.wait()
+                local Time = tick() * 35
+                Boat:SetPrimaryPartCFrame(TRoot.CFrame * CFrame.new(math.sin(Time) * 4, 0, math.cos(Time) * 15))
+            end
+
+            if THum.Sit then
+                task.wait(0.8)
+                Boat:SetPrimaryPartCFrame(OldPos)
+                task.wait(1.5)
+            end
+
+            Hum.Sit = false
+            task.wait(0.5)
+            Root.CFrame = OldPos + Vector3.new(0, 3, 0)
+            Root.Anchored = true
+            task.wait(2)
+            Root.Anchored = false
+        end)
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "دوران عشوائي بالقارب الخشبي",
+    Callback = function()
+        local Target = GetRandomBoatTarget()
+        if not Target then return end
+
+        local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local Root = Char:WaitForChild("HumanoidRootPart")
+        local Hum = Char:WaitForChild("Humanoid")
+
+        if Hum.Sit then
+            Hum.Sit = false
+            task.wait(0.5)
+        end
+
+        Root.CFrame = workspace.WorkspaceCom["001_CanoeCloneButton"].Button.CFrame
+        task.wait(0.4)
+        fireclickdetector(workspace.WorkspaceCom["001_CanoeCloneButton"].Button.ClickDetector, 0)
+        task.wait(0.5)
+
+        local Boat = workspace.WorkspaceCom["001_CanoeStorage"].Canoe
+        local Seat = Boat:FindFirstChild("VehicleSeat")
+        Boat.PrimaryPart = Seat
+
+        local Attempts = 0
+        repeat
+            Root.CFrame = Seat.CFrame * CFrame.new(0, 2, 0)
+            task.wait(0.1)
+            Seat:Sit(Hum)
+            Attempts = Attempts + 1
+        until Hum.Sit or Attempts > 50
+
+        if not Hum.Sit then return end
+
+        local TChar = Target.Character
+        local TRoot = TChar:WaitForChild("HumanoidRootPart")
+        local THum = TChar:WaitForChild("Humanoid")
+
+        local Force = Instance.new("BodyForce", Boat.PrimaryPart)
+        local Angular = Instance.new("BodyAngularVelocity", Boat.PrimaryPart)
+        Angular.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        Angular.AngularVelocity = Vector3.new(1000, 5000, 1000)
+        Angular.P = 1e9
+
+        local Start = tick()
+        while tick() - Start < 10 and Hum.Sit and THum.Health > 0 and not THum.Sit do
+            local Time = tick() * 30
+            local Offset = TRoot.CFrame.LookVector * 10 * (math.sin(Time) > 0 and 1 or -1)
+            Boat:SetPrimaryPartCFrame(CFrame.new(TRoot.Position + Offset, TRoot.Position))
+            Force.Force = (TRoot.Position - Boat.PrimaryPart.Position).Unit * 1e6 + Vector3.new(0, workspace.Gravity * Boat.PrimaryPart:GetMass(), 0)
+            task.wait()
+        end
+
+        Force:Destroy()
+        Angular:Destroy()
+        Hum.Sit = false
+    end
+})
+
+BoatsTab:AddSection({ "القارب العسكري" })
+
+local MilitarySelected = nil
+local LastRandomMilitary = nil
+
+local MilitaryDropdown = BoatsTab:AddDropdown({
+    Name = "اختيار اللاعب",
+    Default = "",
+    Multi = false,
+    Options = GetBoatPlayerNames(),
+    Callback = function(name)
+        MilitarySelected = Players:FindFirstChild(name)
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "تحديث قائمة اللاعبين",
+    Callback = function()
+        MilitaryDropdown:Set(GetBoatPlayerNames())
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "V1 - فلنق",
+    Callback = function()
+        if not MilitarySelected then return end
+        
+        local Player = game.Players.LocalPlayer
+        local Character = Player.Character
+        local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+        local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+        local Vehicles = workspace:FindFirstChild("Vehicles")
+        if not Humanoid or not RootPart then return end
+
+        local function spawnBoat()
+            RootPart.CFrame = CFrame.new(1754, -2, 58)
+            task.wait(0.5)
+            game:GetService("ReplicatedStorage").RE:FindFirstChild("1Ca1r"):FireServer("PickingBoat", "MilitaryBoatFree")
+            task.wait(1)
+            return Vehicles and Vehicles:FindFirstChild(Player.Name.."Car")
+        end
+
+        local PCar = Vehicles and Vehicles:FindFirstChild(Player.Name.."Car") or spawnBoat()
+        if not PCar then return end
+
+        local Seat = PCar:FindFirstChild("Body") and PCar.Body:FindFirstChild("VehicleSeat")
+        if not Seat then return end
+
+        repeat 
+            task.wait(0.1)
+            RootPart.CFrame = Seat.CFrame * CFrame.new(0, math.random(-1, 1), 0)
+        until Humanoid.Sit
+
+        local SpinGyro = Instance.new("BodyGyro")
+        SpinGyro.Parent = PCar.PrimaryPart
+        SpinGyro.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
+        SpinGyro.P = 1e7
+        SpinGyro.CFrame = PCar.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(90), 0)
+
+        workspace.Gravity = 0.1
+
+        local TargetPlayer = MilitarySelected
+        if not TargetPlayer or not TargetPlayer.Character then return end
+        local TargetC = TargetPlayer.Character
+        local TargetH = TargetC:FindFirstChildOfClass("Humanoid")
+        local TargetRP = TargetC:FindFirstChild("HumanoidRootPart")
+        if not TargetRP or not TargetH then return end
+
+        local StartTime = tick()
+        local function flingTarget()
+            local vel = TargetRP.Velocity.Magnitude
+            local dir = TargetH.MoveDirection
+            local function kill(alvo, pos)
+                if PCar and PCar.PrimaryPart then
+                    PCar:SetPrimaryPartCFrame(CFrame.new(alvo.Position) * pos)
+                end
+            end
+            kill(TargetRP, CFrame.new(0, 3, 0) + dir * vel / 1.05)
+            kill(TargetRP, CFrame.new(0, -2.25, 5) + dir * vel / 1.05)
+            kill(TargetRP, CFrame.new(0, 2.25, 0.25) + dir * vel / 1.10)
+            kill(TargetRP, CFrame.new(-2.25, -1.5, 2.25) + dir * vel / 1.10)
+            kill(TargetRP, CFrame.new(0, 1.5, 0) + dir * vel / 1.05)
+            kill(TargetRP, CFrame.new(0, -1.5, 0) + dir * vel / 1.05)
+        end
+
+        while TargetH.Health > 0 and not TargetH.Sit and (tick() - StartTime) < 10 do
+            task.wait(0.1)
+            flingTarget()
+        end
+
+        PCar:SetPrimaryPartCFrame(CFrame.new(0, -500, 0))
+        task.wait(0.2)
+        Humanoid.Sit = false
+        task.wait(0.3)
+        workspace.Gravity = 196.2
+        SpinGyro:Destroy()
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "V2 - فلنق",
+    Callback = function()
+        if not MilitarySelected then return end
+        
+        local Player = game.Players.LocalPlayer
+        local Character = Player.Character
+        local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+        local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+        local Vehicles = workspace:FindFirstChild("Vehicles")
+        if not Humanoid or not RootPart then return end
+
+        local function spawnBoat()
+            RootPart.CFrame = CFrame.new(1754, -2, 58)
+            task.wait(0.5)
+            game:GetService("ReplicatedStorage").RE:FindFirstChild("1Ca1r"):FireServer("PickingBoat", "MilitaryBoatFree")
+            task.wait(1)
+            return Vehicles and Vehicles:FindFirstChild(Player.Name.."Car")
+        end
+
+        local PCar = Vehicles and Vehicles:FindFirstChild(Player.Name.."Car") or spawnBoat()
+        if not PCar then return end
+
+        local Seat = PCar:FindFirstChild("Body") and PCar.Body:FindFirstChild("VehicleSeat")
+        if not Seat then return end
+
+        repeat 
+            task.wait(0.1)
+            RootPart.CFrame = Seat.CFrame * CFrame.new(0, 1, 0)
+        until Humanoid.SeatPart == Seat
+
+        local TargetPlayer = MilitarySelected
+        if not TargetPlayer or not TargetPlayer.Character then return end
+        local TargetC = TargetPlayer.Character
+        local TargetH = TargetC:FindFirstChildOfClass("Humanoid")
+        local TargetRP = TargetC:FindFirstChild("HumanoidRootPart")
+        if not TargetRP or not TargetH then return end
+
+        local Spin = Instance.new("BodyAngularVelocity")
+        Spin.Name = "Spinning"
+        Spin.Parent = PCar.PrimaryPart
+        Spin.MaxTorque = Vector3.new(0, math.huge, 0)
+        Spin.AngularVelocity = Vector3.new(0, 369, 0)
+
+        workspace.Gravity = 0.1
+
+        local StartTime = tick()
+        local function moveCar(TargetRP, offset)
+            if PCar and PCar.PrimaryPart then
+                PCar:SetPrimaryPartCFrame(CFrame.new(TargetRP.Position + offset))
+            end
+        end
+
+        while TargetH.Health > 0 and not TargetH.Sit and (tick() - StartTime) < 10 do
+            task.wait(0.01)
+            local front = TargetRP.CFrame.LookVector * 2
+            moveCar(TargetRP, front + Vector3.new(0, 1.5, 0))
+            if TargetRP.Position.Y > 7000 then
+                if Spin and Spin.Parent then Spin:Destroy() end
+                PCar:Destroy()
+                break
+            end
+            if PCar and PCar.PrimaryPart then
+                local Rotation = CFrame.Angles(
+                    math.rad(math.random(-369, 369)),
+                    math.rad(math.random(-369, 369)),
+                    math.rad(math.random(-369, 369))
+                )
+                PCar:SetPrimaryPartCFrame(CFrame.new(TargetRP.Position + front + Vector3.new(0,1.5,0)) * Rotation)
+            end
+        end
+
+        task.wait(0.5)
+        PCar:SetPrimaryPartCFrame(CFrame.new(0, -500, 0))
+        task.wait(0.2)
+        Humanoid.Sit = false
+        task.wait(0.3)
+        workspace.Gravity = 196.2
+        if Spin and Spin.Parent then Spin:Destroy() end
+    end
+})
+
+BoatsTab:AddSection({ "الكل القارب العسكري" })
+
+BoatsTab:AddButton({
+    Name = "فلنق الكل القارب العسكري",
+    Callback = function()
+        local Player = game.Players.LocalPlayer
+        local Character = Player.Character
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        local RootPart = Character:FindFirstChild("HumanoidRootPart")
+        local Vehicles = game.Workspace:FindFirstChild("Vehicles")
+        local OldPos = RootPart.CFrame
+        local Angles = 0
+        local PCar = Vehicles:FindFirstChild(Player.Name.."Car")
+        
+        if not PCar then  
+            if RootPart then  
+                RootPart.CFrame = CFrame.new(1754, -2, 58)  
+                task.wait(0.5)  
+                game:GetService("ReplicatedStorage").RE:FindFirstChild("1Ca1r"):FireServer("PickingBoat", "MilitaryBoatFree")  
+                task.wait(0.5)  
+                PCar = Vehicles:FindFirstChild(Player.Name.."Car")  
+                task.wait(0.5)  
+                local Seat = PCar:FindFirstChild("Body") and PCar.Body:FindFirstChild("VehicleSeat")  
+                if Seat then  
+                    repeat  
+                        task.wait()  
+                        RootPart.CFrame = Seat.CFrame * CFrame.new(0, math.random(-1, 1), 0)  
+                    until Humanoid.Sit  
+                end  
+            end  
+        end  
+
+        task.wait(0.5)  
+        PCar = Vehicles:FindFirstChild(Player.Name.."Car")  
+
+        if PCar then  
+            if not Humanoid.Sit then  
+                local Seat = PCar:FindFirstChild("Body") and PCar.Body:FindFirstChild("VehicleSeat")  
+                if Seat then  
+                    repeat  
+                        task.wait()  
+                        RootPart.CFrame = Seat.CFrame * CFrame.new(0, math.random(-1, 1), 0)  
+                    until Humanoid.Sit  
+                end  
+            end  
+        end  
+
+        local SpinGyro = Instance.new("BodyGyro")  
+        SpinGyro.Parent = PCar.PrimaryPart  
+        SpinGyro.MaxTorque = Vector3.new(1e7, 1e7, 1e7)  
+        SpinGyro.P = 1e7  
+        SpinGyro.CFrame = PCar.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(90), 0)  
+
+        local function flingPlayer(TargetC, TargetRP, TargetH)
+            Angles = 0  
+            local endTime = tick() + 1  
+            while tick() < endTime do  
+                Angles = Angles + 100  
+                task.wait()  
+
+                local kill = function(target, pos, angle)  
+                    PCar:SetPrimaryPartCFrame(CFrame.new(target.Position) * pos * angle)  
+                end  
+
+                kill(TargetRP, CFrame.new(0, 3, 0), CFrame.Angles(math.rad(Angles), 0, 0))  
+                kill(TargetRP, CFrame.new(0, -1.5, 2), CFrame.Angles(math.rad(Angles), 0, 0))  
+                kill(TargetRP, CFrame.new(2, 1.5, 2.25), CFrame.Angles(math.rad(50), 0, 0))  
+                kill(TargetRP, CFrame.new(-2.25, -1.5, 2.25), CFrame.Angles(math.rad(30), 0, 0))  
+                kill(TargetRP, CFrame.new(0, 1.5, 0), CFrame.Angles(math.rad(Angles), 0, 0))  
+                kill(TargetRP, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(Angles), 0, 0))  
+            end  
+        end  
+
+        for _, Target in pairs(game.Players:GetPlayers()) do  
+            if Target ~= Player then  
+                local TargetC = Target.Character  
+                local TargetH = TargetC and TargetC:FindFirstChildOfClass("Humanoid")  
+                local TargetRP = TargetC and TargetC:FindFirstChild("HumanoidRootPart")  
+
+                if TargetC and TargetH and TargetRP then  
+                    flingPlayer(TargetC, TargetRP, TargetH)  
+                end  
+            end  
+        end  
+
+        task.wait(0.5)  
+        PCar:SetPrimaryPartCFrame(CFrame.new(0, 0, 0))  
+        task.wait(0.5)  
+        Humanoid.Sit = false  
+        task.wait(0.5)  
+        RootPart.CFrame = OldPos  
+
+        SpinGyro:Destroy()  
+    end
+})
+
+BoatsTab:AddSection({ "عشوائي القارب العسكري" })
+
+local function GetRandomMilitaryTarget()
+    local Available = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p ~= LastRandomMilitary and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local Hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if Hum and Hum.Health > 0 then
+                table.insert(Available, p)
+            end
+        end
+    end
+    if #Available == 0 then
+        LastRandomMilitary = nil
+        return GetRandomMilitaryTarget()
+    end
+    local Chosen = Available[math.random(1, #Available)]
+    LastRandomMilitary = Chosen
+    return Chosen
+end
+
+BoatsTab:AddButton({
+    Name = "V1 - فلنق عشوائي",
+    Callback = function()
+        local RandomTarget = GetRandomMilitaryTarget()
+        if not RandomTarget then return end
+        
+        local Player = game.Players.LocalPlayer
+        local Character = Player.Character
+        local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+        local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+        local Vehicles = workspace:FindFirstChild("Vehicles")
+        if not Humanoid or not RootPart then return end
+
+        local function spawnBoat()
+            RootPart.CFrame = CFrame.new(1754, -2, 58)
+            task.wait(0.5)
+            game:GetService("ReplicatedStorage").RE:FindFirstChild("1Ca1r"):FireServer("PickingBoat", "MilitaryBoatFree")
+            task.wait(1)
+            return Vehicles and Vehicles:FindFirstChild(Player.Name.."Car")
+        end
+
+        local PCar = Vehicles and Vehicles:FindFirstChild(Player.Name.."Car") or spawnBoat()
+        if not PCar then return end
+
+        local Seat = PCar:FindFirstChild("Body") and PCar.Body:FindFirstChild("VehicleSeat")
+        if not Seat then return end
+
+        repeat 
+            task.wait(0.1)
+            RootPart.CFrame = Seat.CFrame * CFrame.new(0, math.random(-1, 1), 0)
+        until Humanoid.Sit
+
+        local SpinGyro = Instance.new("BodyGyro")
+        SpinGyro.Parent = PCar.PrimaryPart
+        SpinGyro.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
+        SpinGyro.P = 1e7
+        SpinGyro.CFrame = PCar.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(90), 0)
+
+        workspace.Gravity = 0.1
+
+        local TargetPlayer = RandomTarget
+        if not TargetPlayer or not TargetPlayer.Character then return end
+        local TargetC = TargetPlayer.Character
+        local TargetH = TargetC:FindFirstChildOfClass("Humanoid")
+        local TargetRP = TargetC:FindFirstChild("HumanoidRootPart")
+        if not TargetRP or not TargetH then return end
+
+        local StartTime = tick()
+        local function flingTarget()
+            local vel = TargetRP.Velocity.Magnitude
+            local dir = TargetH.MoveDirection
+            local function kill(alvo, pos)
+                if PCar and PCar.PrimaryPart then
+                    PCar:SetPrimaryPartCFrame(CFrame.new(alvo.Position) * pos)
+                end
+            end
+            kill(TargetRP, CFrame.new(0, 3, 0) + dir * vel / 1.05)
+            kill(TargetRP, CFrame.new(0, -2.25, 5) + dir * vel / 1.05)
+            kill(TargetRP, CFrame.new(0, 2.25, 0.25) + dir * vel / 1.10)
+            kill(TargetRP, CFrame.new(-2.25, -1.5, 2.25) + dir * vel / 1.10)
+            kill(TargetRP, CFrame.new(0, 1.5, 0) + dir * vel / 1.05)
+            kill(TargetRP, CFrame.new(0, -1.5, 0) + dir * vel / 1.05)
+        end
+
+        while TargetH.Health > 0 and not TargetH.Sit and (tick() - StartTime) < 10 do
+            task.wait(0.1)
+            flingTarget()
+        end
+
+        PCar:SetPrimaryPartCFrame(CFrame.new(0, -500, 0))
+        task.wait(0.2)
+        Humanoid.Sit = false
+        task.wait(0.3)
+        workspace.Gravity = 196.2
+        SpinGyro:Destroy()
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "V2 - فلنق عشوائي",
+    Callback = function()
+        local RandomTarget = GetRandomMilitaryTarget()
+        if not RandomTarget then return end
+        
+        local Player = game.Players.LocalPlayer
+        local Character = Player.Character
+        local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+        local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+        local Vehicles = workspace:FindFirstChild("Vehicles")
+        if not Humanoid or not RootPart then return end
+
+        local function spawnBoat()
+            RootPart.CFrame = CFrame.new(1754, -2, 58)
+            task.wait(0.5)
+            game:GetService("ReplicatedStorage").RE:FindFirstChild("1Ca1r"):FireServer("PickingBoat", "MilitaryBoatFree")
+            task.wait(1)
+            return Vehicles and Vehicles:FindFirstChild(Player.Name.."Car")
+        end
+
+        local PCar = Vehicles and Vehicles:FindFirstChild(Player.Name.."Car") or spawnBoat()
+        if not PCar then return end
+
+        local Seat = PCar:FindFirstChild("Body") and PCar.Body:FindFirstChild("VehicleSeat")
+        if not Seat then return end
+
+        repeat 
+            task.wait(0.1)
+            RootPart.CFrame = Seat.CFrame * CFrame.new(0, 1, 0)
+        until Humanoid.SeatPart == Seat
+
+        local TargetPlayer = RandomTarget
+        if not TargetPlayer or not TargetPlayer.Character then return end
+        local TargetC = TargetPlayer.Character
+        local TargetH = TargetC:FindFirstChildOfClass("Humanoid")
+        local TargetRP = TargetC:FindFirstChild("HumanoidRootPart")
+        if not TargetRP or not TargetH then return end
+
+        local Spin = Instance.new("BodyAngularVelocity")
+        Spin.Name = "Spinning"
+        Spin.Parent = PCar.PrimaryPart
+        Spin.MaxTorque = Vector3.new(0, math.huge, 0)
+        Spin.AngularVelocity = Vector3.new(0, 369, 0)
+
+        workspace.Gravity = 0.1
+
+        local StartTime = tick()
+        local function moveCar(TargetRP, offset)
+            if PCar and PCar.PrimaryPart then
+                PCar:SetPrimaryPartCFrame(CFrame.new(TargetRP.Position + offset))
+            end
+        end
+
+        while TargetH.Health > 0 and not TargetH.Sit and (tick() - StartTime) < 10 do
+            task.wait(0.01)
+            local front = TargetRP.CFrame.LookVector * 2
+            moveCar(TargetRP, front + Vector3.new(0, 1.5, 0))
+            if TargetRP.Position.Y > 7000 then
+                if Spin and Spin.Parent then Spin:Destroy() end
+                PCar:Destroy()
+                break
+            end
+            if PCar and PCar.PrimaryPart then
+                local Rotation = CFrame.Angles(
+                    math.rad(math.random(-369, 369)),
+                    math.rad(math.random(-369, 369)),
+                    math.rad(math.random(-369, 369))
+                )
+                PCar:SetPrimaryPartCFrame(CFrame.new(TargetRP.Position + front + Vector3.new(0,1.5,0)) * Rotation)
+            end
+        end
+
+        task.wait(0.5)
+        PCar:SetPrimaryPartCFrame(CFrame.new(0, -500, 0))
+        task.wait(0.2)
+        Humanoid.Sit = false
+        task.wait(0.3)
+        workspace.Gravity = 196.2
+        if Spin and Spin.Parent then Spin:Destroy() end
+    end
+})
+
+BoatsTab:AddSection({ "قارب القرصان" })
+
+local PirateSelected = nil
+local LastRandomPirate = nil
+
+local PirateDropdown = BoatsTab:AddDropdown({
+    Name = "اختيار اللاعب",
+    Default = "",
+    Multi = false,
+    Options = GetBoatPlayerNames(),
+    Callback = function(name)
+        PirateSelected = Players:FindFirstChild(name)
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "تحديث قائمة اللاعبين",
+    Callback = function()
+        PirateDropdown:Set(GetBoatPlayerNames())
+    end
+})
+
+BoatsTab:AddButton({
+    Name = "فلنق قارب القرصان",
+    Callback = function()
+        local RS = game:GetService("ReplicatedStorage")
+        local RunService = game:GetService("RunService")
+        local Player = Players.LocalPlayer
+        local Character = Player.Character or Player.CharacterAdded:Wait()
+        local Humanoid = Character:WaitForChild("Humanoid")
+        local RootPart = Character:WaitForChild("HumanoidRootPart")
+        local Vehicles = workspace:WaitForChild("Vehicles")
+
+        if not PirateSelected then return end
+        local target = PirateSelected
+        if not target or not target.Character then return end
+
+        RootPart.CFrame = CFrame.new(1754, -2, 58)
+        task.wait(0.5)
+        RS.RE:FindFirstChild("1Ca1r"):FireServer("PickingBoat", "PirateFree")
+        task.wait(1)
+
+        local PCar = Vehicles:FindFirstChild(Player.Name.."Car")
+        if not PCar or not PCar.PrimaryPart then return end
+
+        local Seat = PCar.Body.VehicleSeat
+        repeat
+            task.wait()
+            RootPart.CFrame = Seat.CFrame * CFrame.new(0, 1, 0)
+        until Humanoid.SeatPart == Seat
+
+        local alvoChar = target.Character
+        local alvoRoot = alvoChar:WaitForChild("HumanoidRootPart")
+        local alvoHum = alvoChar:WaitForChild("Humanoid")
+
+        local force = Instance.new("BodyForce", PCar.PrimaryPart)
+        local angular = Instance.new("BodyAngularVelocity", PCar.PrimaryPart)
+        angular.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        angular.AngularVelocity = Vector3.new(4000, 8000, 4000)
+        angular.P = 1e9
+
+        local dist = 8
+        local dirSwitch = 1
+
+        RunService.Heartbeat:Connect(function()
+            if not (PCar and PCar.PrimaryPart and alvoHum.Health > 0) then return end
+            local offset = alvoRoot.CFrame.LookVector * dist * dirSwitch
+            local pos = alvoRoot.Position + offset
+            PCar:SetPrimaryPartCFrame(CFrame.new(pos, alvoRoot.Position))
+            dirSwitch = -dirSwitch
+            local dir = (alvoRoot.Position - PCar.PrimaryPart.Position).Unit
+            force.Force = dir * 1e6 + Vector3.new(0, workspace.Gravity * PCar.PrimaryPart:GetMass(), 0)
+        end)
+    end
+})
+
+BoatsTab:AddSection({ "الكل قارب القرصان" })
+
+BoatsTab:AddButton({
+    Name = "فلنق الكل قارب القرصان",
+    Callback = function()
+        local RS = game:GetService("ReplicatedStorage")
+        local RunService = game:GetService("RunService")
+        local Player = Players.LocalPlayer
+        local Character = Player.Character or Player.CharacterAdded:Wait()
+        local Humanoid = Character:WaitForChild("Humanoid")
+        local RootPart = Character:WaitForChild("HumanoidRootPart")
+        local Vehicles = workspace:WaitForChild("Vehicles")
+
+        RootPart.CFrame = CFrame.new(1754, -2, 58)
+        task.wait(0.5)
+        RS.RE:FindFirstChild("1Ca1r"):FireServer("PickingBoat", "PirateFree")
+        task.wait(1)
+
+        local PCar = Vehicles:FindFirstChild(Player.Name.."Car")
+        if not PCar or not PCar.PrimaryPart then return end
+
+        local Seat = PCar.Body.VehicleSeat
+        repeat
+            task.wait()
+            RootPart.CFrame = Seat.CFrame * CFrame.new(0, 1, 0)
+        until Humanoid.SeatPart == Seat
+
+        local force = Instance.new("BodyForce", PCar.PrimaryPart)
+        local angular = Instance.new("BodyAngularVelocity", PCar.PrimaryPart)
+        angular.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        angular.AngularVelocity = Vector3.new(4000, 8000, 4000)
+        angular.P = 1e9
+
+        local dist = 8
+        local dirSwitch = 1
+        local playersList = {}
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                table.insert(playersList, p)
+            end
+        end
+        if #playersList == 0 then return end
+
+        local currentIndex = 1
+        local target = playersList[currentIndex]
+        local lastSwitch = tick()
+
+        RunService.Heartbeat:Connect(function()
+            if not (PCar and PCar.PrimaryPart and Humanoid and Humanoid.SeatPart) then return end
+            if not target or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return end
+
+            local alvoRoot = target.Character.HumanoidRootPart
+            local offset = alvoRoot.CFrame.LookVector * dist * dirSwitch
+            local pos = alvoRoot.Position + offset
+            PCar:SetPrimaryPartCFrame(CFrame.new(pos, alvoRoot.Position))
+            dirSwitch = -dirSwitch
+            local dir = (alvoRoot.Position - PCar.PrimaryPart.Position).Unit
+            force.Force = dir * 1e6 + Vector3.new(0, workspace.Gravity * PCar.PrimaryPart:GetMass(), 0)
+
+            if tick() - lastSwitch > 3 then
+                currentIndex = currentIndex + 1
+                if currentIndex > #playersList then currentIndex = 1 end
+                target = playersList[currentIndex]
+                lastSwitch = tick()
+            end
+        end)
+    end
+})
+
+BoatsTab:AddSection({ "عشوائي قارب القرصان" })
+
+local function GetRandomPirateTarget()
+    local Available = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p ~= LastRandomPirate and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local Hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if Hum and Hum.Health > 0 then
+                table.insert(Available, p)
+            end
+        end
+    end
+    if #Available == 0 then
+        LastRandomPirate = nil
+        return GetRandomPirateTarget()
+    end
+    local Chosen = Available[math.random(1, #Available)]
+    LastRandomPirate = Chosen
+    return Chosen
+end
+
+BoatsTab:AddButton({
+    Name = "فلنق عشوائي قارب القرصان",
+    Callback = function()
+        local RS = game:GetService("ReplicatedStorage")
+        local RunService = game:GetService("RunService")
+        local Player = Players.LocalPlayer
+        local Character = Player.Character or Player.CharacterAdded:Wait()
+        local Humanoid = Character:WaitForChild("Humanoid")
+        local RootPart = Character:WaitForChild("HumanoidRootPart")
+        local Vehicles = workspace:WaitForChild("Vehicles")
+
+        local RandomTarget = GetRandomPirateTarget()
+        if not RandomTarget then return end
+
+        local target = RandomTarget
+        if not target or not target.Character then return end
+
+        RootPart.CFrame = CFrame.new(1754, -2, 58)
+        task.wait(0.5)
+        RS.RE:FindFirstChild("1Ca1r"):FireServer("PickingBoat", "PirateFree")
+        task.wait(1)
+
+        local PCar = Vehicles:FindFirstChild(Player.Name.."Car")
+        if not PCar or not PCar.PrimaryPart then return end
+
+        local Seat = PCar.Body.VehicleSeat
+        repeat
+            task.wait()
+            RootPart.CFrame = Seat.CFrame * CFrame.new(0, 1, 0)
+        until Humanoid.SeatPart == Seat
+
+        local alvoChar = target.Character
+        local alvoRoot = alvoChar:WaitForChild("HumanoidRootPart")
+        local alvoHum = alvoChar:WaitForChild("Humanoid")
+
+        local force = Instance.new("BodyForce", PCar.PrimaryPart)
+        local angular = Instance.new("BodyAngularVelocity", PCar.PrimaryPart)
+        angular.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        angular.AngularVelocity = Vector3.new(4000, 8000, 4000)
+        angular.P = 1e9
+
+        local dist = 8
+        local dirSwitch = 1
+
+        RunService.Heartbeat:Connect(function()
+            if not (PCar and PCar.PrimaryPart and alvoHum.Health > 0) then return end
+            local offset = alvoRoot.CFrame.LookVector * dist * dirSwitch
+            local pos = alvoRoot.Position + offset
+            PCar:SetPrimaryPartCFrame(CFrame.new(pos, alvoRoot.Position))
+            dirSwitch = -dirSwitch
+            local dir = (alvoRoot.Position - PCar.PrimaryPart.Position).Unit
+            force.Force = dir * 1e6 + Vector3.new(0, workspace.Gravity * PCar.PrimaryPart:GetMass(), 0)
+        end)
+    end
+})
 
 local CarTab = Window:MakeTab({
     Title = "السيارة",
