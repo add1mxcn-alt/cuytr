@@ -693,6 +693,230 @@ spawn(function()
     end
 end)
 
+local ShaderTab = Window:MakeTab({
+    Title = "شادرات",
+    Icon = "rbxassetid://10747382750"
+})
+
+local Lighting = game:GetService("Lighting")
+
+local defaultLighting = {
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    FogStart = Lighting.FogStart,
+    FogEnd = Lighting.FogEnd,
+    FogColor = Lighting.FogColor
+}
+
+local shaderList = {
+    "شادر نيون وبرق أسطوري",
+    "شادر RTX ونيون قوي",
+    "شادر مخيف ودماء ف الماب",
+    "جو شتاء اسطوري",
+    "شادر غروب الشمس وضباب",
+    "شادر غابة سحرية مع أشعة شمس",
+    "شادر بحر هادئ وضبابي",
+    "شادر فضائي مع توهج النجوم",
+    "شادر نار مشتعلة وبخار",
+    "شادر واقعي اسطوري",
+    "شادر ضباب ليلي",
+    "شادر غابة ضبابية",
+    "شادر غروب صحراوي",
+    "شادر جليدي متلألئ",
+    "شادر غابة ليزرية سحرية"
+}
+
+local selectedShader = shaderList[1]
+local currentEffects = {}
+local shaderActive = false
+
+ShaderTab:AddDropdown({
+    Name = "اختر الشادر",
+    Default = shaderList[1],
+    Options = shaderList,
+    Callback = function(value)
+        selectedShader = value
+    end
+})
+
+local function resetLighting()
+    for _, effect in pairs(currentEffects) do
+        if effect and effect.Parent then
+            effect:Destroy()
+        end
+    end
+    currentEffects = {}
+
+    Lighting.Ambient = defaultLighting.Ambient
+    Lighting.OutdoorAmbient = defaultLighting.OutdoorAmbient
+    Lighting.FogStart = defaultLighting.FogStart
+    Lighting.FogEnd = defaultLighting.FogEnd
+    Lighting.FogColor = defaultLighting.FogColor
+end
+
+local function applyShader()
+    if selectedShader == "شادر نيون وبرق أسطوري" then
+        Lighting.Ambient = Color3.fromRGB(50,0,100)
+        Lighting.OutdoorAmbient = Color3.fromRGB(30,0,80)
+        Lighting.FogStart = 100
+        Lighting.FogEnd = 500
+
+    elseif selectedShader == "شادر RTX ونيون قوي" then
+        local bloom = Instance.new("BloomEffect")
+        bloom.Intensity = 2
+        bloom.Size = 35
+        bloom.Threshold = 0.5
+        bloom.Parent = Lighting
+        table.insert(currentEffects, bloom)
+
+        Lighting.Ambient = Color3.fromRGB(80,0,150)
+        Lighting.OutdoorAmbient = Color3.fromRGB(60,0,130)
+
+    elseif selectedShader == "شادر مخيف ودماء ف الماب" then
+        local colorCorrection = Instance.new("ColorCorrectionEffect")
+        colorCorrection.Contrast = 0.3
+        colorCorrection.Brightness = -0.2
+        colorCorrection.TintColor = Color3.fromRGB(100, 20, 20)
+        colorCorrection.Saturation = -0.5
+        colorCorrection.Parent = Lighting
+        table.insert(currentEffects, colorCorrection)
+
+        local blur = Instance.new("BlurEffect")
+        blur.Size = 8
+        blur.Parent = Lighting
+        table.insert(currentEffects, blur)
+
+    elseif selectedShader == "جو شتاء اسطوري" then
+        Lighting.Ambient = Color3.fromRGB(150,190,220)
+        Lighting.OutdoorAmbient = Color3.fromRGB(120,170,210)
+        Lighting.FogColor = Color3.fromRGB(180,210,230)
+        Lighting.FogStart = 50
+        Lighting.FogEnd = 300
+
+    elseif selectedShader == "شادر غروب الشمس وضباب" then
+        Lighting.Ambient = Color3.fromRGB(255,150,100)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255,120,80)
+        Lighting.FogStart = 30
+        Lighting.FogEnd = 200
+
+    elseif selectedShader == "شادر غابة سحرية مع أشعة شمس" then
+        Lighting.Ambient = Color3.fromRGB(80,200,120)
+        Lighting.OutdoorAmbient = Color3.fromRGB(60,180,100)
+        local sunrays = Instance.new("SunRaysEffect")
+        sunrays.Intensity = 0.3
+        sunrays.Spread = 0.6
+        sunrays.Parent = Lighting
+        table.insert(currentEffects, sunrays)
+
+    elseif selectedShader == "شادر بحر هادئ وضبابي" then
+        Lighting.Ambient = Color3.fromRGB(100,150,255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(80,130,255)
+        Lighting.FogStart = 20
+        Lighting.FogEnd = 150
+
+    elseif selectedShader == "شادر فضائي مع توهج النجوم" then
+        Lighting.Ambient = Color3.fromRGB(120,80,200)
+        Lighting.OutdoorAmbient = Color3.fromRGB(100,60,180)
+        local bloom = Instance.new("BloomEffect")
+        bloom.Intensity = 1.5
+        bloom.Size = 30
+        bloom.Threshold = 0.7
+        bloom.Parent = Lighting
+        table.insert(currentEffects, bloom)
+
+    elseif selectedShader == "شادر نار مشتعلة وبخار" then
+        Lighting.Ambient = Color3.fromRGB(255,80,20)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255,60,0)
+        local blur = Instance.new("BlurEffect")
+        blur.Size = 5
+        blur.Parent = Lighting
+        table.insert(currentEffects, blur)
+
+    elseif selectedShader == "شادر واقعي اسطوري" then
+        Lighting.Ambient = Color3.fromRGB(180, 185, 200)
+        Lighting.OutdoorAmbient = Color3.fromRGB(150, 160, 180)
+        Lighting.FogStart = 200
+        Lighting.FogEnd = 800
+        Lighting.FogColor = Color3.fromRGB(190, 195, 210)
+        
+        local bloom = Instance.new("BloomEffect")
+        bloom.Intensity = 0.5
+        bloom.Size = 15
+        bloom.Threshold = 0.9
+        bloom.Parent = Lighting
+        table.insert(currentEffects, bloom)
+        
+        local colorCorrection = Instance.new("ColorCorrectionEffect")
+        colorCorrection.Contrast = 0.1
+        colorCorrection.Brightness = 0.1
+        colorCorrection.Saturation = 0.2
+        colorCorrection.Parent = Lighting
+        table.insert(currentEffects, colorCorrection)
+        
+        local sunrays = Instance.new("SunRaysEffect")
+        sunrays.Intensity = 0.1
+        sunrays.Spread = 0.8
+        sunrays.Parent = Lighting
+        table.insert(currentEffects, sunrays)
+
+    elseif selectedShader == "شادر ضباب ليلي" then
+        Lighting.Ambient = Color3.fromRGB(30,30,50)
+        Lighting.OutdoorAmbient = Color3.fromRGB(20,20,40)
+        Lighting.FogStart = 10
+        Lighting.FogEnd = 100
+
+    elseif selectedShader == "شادر غابة ضبابية" then
+        Lighting.Ambient = Color3.fromRGB(40,80,40)
+        Lighting.OutdoorAmbient = Color3.fromRGB(20,60,20)
+        Lighting.FogStart = 20
+        Lighting.FogEnd = 150
+
+    elseif selectedShader == "شادر غروب صحراوي" then
+        Lighting.Ambient = Color3.fromRGB(255,180,100)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255,150,80)
+        local bloom = Instance.new("BloomEffect")
+        bloom.Intensity = 1.2
+        bloom.Size = 25
+        bloom.Threshold = 0.7
+        bloom.Parent = Lighting
+        table.insert(currentEffects, bloom)
+
+    elseif selectedShader == "شادر جليدي متلألئ" then
+        Lighting.Ambient = Color3.fromRGB(180,220,255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(150,200,255)
+        local bloom = Instance.new("BloomEffect")
+        bloom.Intensity = 1
+        bloom.Size = 20
+        bloom.Threshold = 0.8
+        bloom.Parent = Lighting
+        table.insert(currentEffects, bloom)
+
+    elseif selectedShader == "شادر غابة ليزرية سحرية" then
+        Lighting.Ambient = Color3.fromRGB(100,200,150)
+        Lighting.OutdoorAmbient = Color3.fromRGB(60,180,120)
+        local bloom = Instance.new("BloomEffect")
+        bloom.Intensity = 2
+        bloom.Size = 30
+        bloom.Threshold = 0.6
+        bloom.Parent = Lighting
+        table.insert(currentEffects, bloom)
+    end
+end
+
+ShaderTab:AddToggle({
+    Name = "تفعيل الشادر",
+    Default = false,
+    Callback = function(value)
+        shaderActive = value
+        if shaderActive then
+            resetLighting()
+            applyShader()
+        else
+            resetLighting()
+        end
+    end
+})
+
 local BangTab = Window:MakeTab({
     Title = "البانق",
     Icon = "rbxassetid://75014710749916"
