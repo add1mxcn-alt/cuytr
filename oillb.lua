@@ -325,143 +325,208 @@ Tab1:AddButton({
 	end
 })
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local ShaderTab = MakeTab({
+    Name = "شادرات",
+    Image = "rbxassetid://75529783306690",
+    TabTitle = false
+})
 
-local function GetPlayerNames()
-    local names = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer then
-            table.insert(names, player.Name)
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+local defaultLighting = {
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    FogStart = Lighting.FogStart,
+    FogEnd = Lighting.FogEnd,
+    FogColor = Lighting.FogColor
+}
+
+local shaderList = {
+    "شادر نيون وبرق أسطوري",
+    "شادر RTX ونيون قوي",
+    "شادر مخيف ودماء ف الماب",
+    "جو شتاء اسطوري",
+    "شادر غروب الشمس وضباب",
+    "شادر غابة سحرية مع أشعة شمس",
+    "شادر بحر هادئ وضبابي",
+    "شادر فضائي مع توهج النجوم",
+    "شادر نار مشتعلة وبخار",
+    "شادر قوس قزح متوهج",
+    "شادر ضباب ليلي",
+    "شادر غابة ضبابية",
+    "شادر غروب صحراوي",
+    "شادر جليدي متلألئ",
+    "شادر غابة ليزرية سحرية"
+}
+
+local selectedShader = shaderList[1]
+local currentEffects = {}
+
+local shaderDropdown = AddDropdown(ShaderTab, {
+    Name = "اختر الشادر",
+    Options = shaderList,
+    Default = shaderList[1],
+    Callback = function(value)
+        selectedShader = value
+    end
+})
+
+local function resetLighting()
+    for _, effect in pairs(currentEffects) do
+        if effect and effect.Parent then
+            effect:Destroy()
         end
     end
-    return names
+    currentEffects = {}
+
+    Lighting.Ambient = defaultLighting.Ambient
+    Lighting.OutdoorAmbient = defaultLighting.OutdoorAmbient
+    Lighting.FogStart = defaultLighting.FogStart
+    Lighting.FogEnd = defaultLighting.FogEnd
+    Lighting.FogColor = defaultLighting.FogColor
 end
 
-local BangTab = Window:MakeTab({
-    Title = "البانق",
-    Icon = "rbxassetid://75014710749916"
-})
-
-local selectedPlayer = nil
-
-local PlayerDropdown = BangTab:AddDropdown({
-    Name = "اختيار اللاعب",
-    Default = "",
-    Multi = false,
-    Options = GetPlayerNames(),
-    Callback = function(name)
-        selectedPlayer = Players:FindFirstChild(name)
-    end
-})
-
-BangTab:AddButton({
-    Name = "تحديث قائمة اللاعبين",
+ShaderTab:AddButton({
+    Name = "اضغط لتطبيق الشادر",
     Callback = function()
-        PlayerDropdown:Set(GetPlayerNames())
+        if not selectedShader then
+            return
+        end
+
+        resetLighting()
+
+        if selectedShader == "شادر نيون وبرق أسطوري" then
+            local bloom = Instance.new("BloomEffect")
+            bloom.Intensity = 2
+            bloom.Size = 24
+            bloom.Threshold = 0.8
+            bloom.Parent = Lighting
+            table.insert(currentEffects, bloom)
+
+        elseif selectedShader == "شادر RTX ونيون قوي" then
+            local bloom = Instance.new("BloomEffect")
+            bloom.Intensity = 2.5
+            bloom.Size = 40
+            bloom.Threshold = 0.7
+            bloom.Parent = Lighting
+            table.insert(currentEffects, bloom)
+
+            local sunrays = Instance.new("SunRaysEffect")
+            sunrays.Intensity = 0.2
+            sunrays.Spread = 0.7
+            sunrays.Parent = Lighting
+            table.insert(currentEffects, sunrays)
+
+        elseif selectedShader == "شادر مخيف ودماء ف الماب" then
+            local colorCorrection = Instance.new("ColorCorrectionEffect")
+            colorCorrection.Contrast = 0.3
+            colorCorrection.Brightness = -0.2
+            colorCorrection.TintColor = Color3.fromRGB(100, 20, 20)
+            colorCorrection.Saturation = -0.5
+            colorCorrection.Parent = Lighting
+            table.insert(currentEffects, colorCorrection)
+
+            local blur = Instance.new("BlurEffect")
+            blur.Size = 8
+            blur.Parent = Lighting
+            table.insert(currentEffects, blur)
+
+        elseif selectedShader == "جو شتاء اسطوري" then
+            Lighting.Ambient = Color3.fromRGB(150,190,220)
+            Lighting.OutdoorAmbient = Color3.fromRGB(120,170,210)
+            Lighting.FogColor = Color3.fromRGB(180,210,230)
+            Lighting.FogStart = 50
+            Lighting.FogEnd = 300
+
+        elseif selectedShader == "شادر غروب الشمس وضباب" then
+            Lighting.Ambient = Color3.fromRGB(255,150,100)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255,120,80)
+            Lighting.FogStart = 30
+            Lighting.FogEnd = 200
+
+        elseif selectedShader == "شادر غابة سحرية مع أشعة شمس" then
+            Lighting.Ambient = Color3.fromRGB(80,200,120)
+            Lighting.OutdoorAmbient = Color3.fromRGB(60,180,100)
+            local sunrays = Instance.new("SunRaysEffect")
+            sunrays.Intensity = 0.3
+            sunrays.Spread = 0.6
+            sunrays.Parent = Lighting
+            table.insert(currentEffects, sunrays)
+
+        elseif selectedShader == "شادر بحر هادئ وضبابي" then
+            Lighting.Ambient = Color3.fromRGB(100,150,255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(80,130,255)
+            Lighting.FogStart = 20
+            Lighting.FogEnd = 150
+
+        elseif selectedShader == "شادر فضائي مع توهج النجوم" then
+            Lighting.Ambient = Color3.fromRGB(120,80,200)
+            Lighting.OutdoorAmbient = Color3.fromRGB(100,60,180)
+            local bloom = Instance.new("BloomEffect")
+            bloom.Intensity = 1.5
+            bloom.Size = 30
+            bloom.Threshold = 0.7
+            bloom.Parent = Lighting
+            table.insert(currentEffects, bloom)
+
+        elseif selectedShader == "شادر نار مشتعلة وبخار" then
+            Lighting.Ambient = Color3.fromRGB(255,80,20)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255,60,0)
+            local blur = Instance.new("BlurEffect")
+            blur.Size = 5
+            blur.Parent = Lighting
+            table.insert(currentEffects, blur)
+
+        elseif selectedShader == "شادر قوس قزح متوهج" then
+            local bloom = Instance.new("BloomEffect")
+            bloom.Intensity = 2
+            bloom.Size = 35
+            bloom.Threshold = 0.6
+            bloom.Parent = Lighting
+            table.insert(currentEffects, bloom)
+
+        elseif selectedShader == "شادر ضباب ليلي" then
+            Lighting.Ambient = Color3.fromRGB(30,30,50)
+            Lighting.OutdoorAmbient = Color3.fromRGB(20,20,40)
+            Lighting.FogStart = 10
+            Lighting.FogEnd = 100
+
+        elseif selectedShader == "شادر غابة ضبابية" then
+            Lighting.Ambient = Color3.fromRGB(40,80,40)
+            Lighting.OutdoorAmbient = Color3.fromRGB(20,60,20)
+            Lighting.FogStart = 20
+            Lighting.FogEnd = 150
+
+        elseif selectedShader == "شادر غروب صحراوي" then
+            Lighting.Ambient = Color3.fromRGB(255,180,100)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255,150,80)
+            local bloom = Instance.new("BloomEffect")
+            bloom.Intensity = 1.2
+            bloom.Size = 25
+            bloom.Threshold = 0.7
+            bloom.Parent = Lighting
+            table.insert(currentEffects, bloom)
+
+        elseif selectedShader == "شادر جليدي متلألئ" then
+            Lighting.Ambient = Color3.fromRGB(180,220,255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(150,200,255)
+            local bloom = Instance.new("BloomEffect")
+            bloom.Intensity = 1
+            bloom.Size = 20
+            bloom.Threshold = 0.8
+            bloom.Parent = Lighting
+            table.insert(currentEffects, bloom)
+
+        elseif selectedShader == "شادر غابة ليزرية سحرية" then
+            Lighting.Ambient = Color3.fromRGB(100,200,150)
+            Lighting.OutdoorAmbient = Color3.fromRGB(60,180,120)
+            local bloom = Instance.new("BloomEffect")
+            bloom.Intensity = 2
+            bloom.Size = 30
+            bloom.Threshold = 0.6
+            bloom.Parent = Lighting
+            table.insert(currentEffects, bloom)
+        end
     end
 })
-
-local function enableNoclip()
-    local player = Players.LocalPlayer
-    local char = player.Character
-    if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
-    end
-end
-
-local function disableNoclip()
-    local player = Players.LocalPlayer
-    local char = player.Character
-    if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-        end
-    end
-end
-
-local function createBangToggle(name, yOffset, faceBang)
-    local bangActive = false
-    local connection = nil
-    local togglePosition = false
-    local currentChar = nil
-    local currentHumanoid = nil
-
-    local function startBang()
-        local player = Players.LocalPlayer
-        currentChar = player.Character
-        if not currentChar then return end
-
-        currentHumanoid = currentChar:FindFirstChildOfClass("Humanoid")
-        if not currentHumanoid then return end
-
-        currentHumanoid.PlatformStand = true
-        enableNoclip()
-
-        if connection then connection:Disconnect() end
-
-        connection = RunService.Heartbeat:Connect(function()
-            if bangActive and selectedPlayer then
-                local targetChar = selectedPlayer.Character
-                if targetChar and targetChar.PrimaryPart then
-                    local targetHead = targetChar:FindFirstChild("Head")
-                    if targetHead and currentChar and currentChar.PrimaryPart then
-                        local offset = togglePosition and 1 or 4
-                        if faceBang then
-                            currentChar:SetPrimaryPartCFrame(targetHead.CFrame * CFrame.new(0, 1, -offset) * CFrame.Angles(0, math.rad(180), 0))
-                        else
-                            currentChar:SetPrimaryPartCFrame(targetHead.CFrame * CFrame.new(0, yOffset, offset) * CFrame.Angles(0, 0, 0))
-                        end
-                        togglePosition = not togglePosition
-                        wait(1)
-                    end
-                end
-            end
-        end)
-    end
-
-    local function stopBang()
-        if currentHumanoid then
-            currentHumanoid.PlatformStand = false
-        end
-        disableNoclip()
-        if connection then
-            connection:Disconnect()
-            connection = nil
-        end
-    end
-
-    BangTab:AddToggle({
-        Name = name,
-        Default = false,
-        Callback = function(Value)
-            bangActive = Value
-            local player = Players.LocalPlayer
-
-            if Value then
-                startBang()
-                player.CharacterAdded:Connect(function(newChar)
-                    if bangActive then
-                        stopBang()
-                        currentChar = newChar
-                        currentHumanoid = newChar:FindFirstChildOfClass("Humanoid")
-                        if currentHumanoid then
-                            startBang()
-                        end
-                    end
-                end)
-            else
-                stopBang()
-            end
-        end    
-    })
-end
-
-createBangToggle("V1 - بانق", -1, false)
-createBangToggle("V2 - بانق", -1.5, false)
-createBangToggle("V1 - بانق وجه", 1, true)
-createBangToggle("V2 - بانق وجه", 1, true)
