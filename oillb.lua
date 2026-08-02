@@ -330,196 +330,261 @@ local BangTab = Window:MakeTab({
     Icon = "rbxassetid://75014710749916"
 })
 
-BangTab:AddSection({ "طائرة البانق" })
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-local SelectedPlayer = nil
-local BangActive = false
-local BangConnection = nil
-local RespawnConnection = nil
-local TogglePosition = false
-local TargetLeftNotified = false
+local BangSelected = nil
+local bangActive = false
+local togglePosition = false
+local targetLeftNotified = false
+local noclipActive = false
+local noclipConnection = nil
+local currentConnection = nil
+local respawnConnection = nil
+
+local bangSpeeds = {
+    ["بانق"] = 0.5,
+    ["بانق للوجه"] = 0.5
+}
+
+local selectedBangType = "بانق"
 
 local function GetPlayerNames()
-    local Names = {}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            table.insert(Names, p.Name)
+    local names = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            table.insert(names, plr.Name)
         end
     end
-    return Names
+    return names
 end
 
-local PlayerDropdown = BangTab:AddDropdown({
+local BangDropdown = BangTab:AddDropdown({
     Name = "اختيار اللاعب",
     Default = "",
+    Multi = false,
     Options = GetPlayerNames(),
-    Callback = function(Value)
-        SelectedPlayer = Players:FindFirstChild(Value)
+    Callback = function(name)
+        if name and name ~= "" then
+            local plr = Players:FindFirstChild(name)
+            if plr then
+                BangSelected = plr
+                targetLeftNotified = false
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Onyxen Hub",
+                    Text = "تم تحديد: " .. plr.DisplayName,
+                    Duration = 2
+                })
+            end
+        else
+            BangSelected = nil
+            targetLeftNotified = false
+        end
     end
 })
-
-local function RefreshDropdown()
-    PlayerDropdown:Refresh(GetPlayerNames(), true)
-end
 
 BangTab:AddButton({
     Name = "تحديث قائمة اللاعبين",
-    Callback = RefreshDropdown
+    Callback = function()
+        local names = GetPlayerNames()
+        if #names == 0 then
+            BangDropdown:Set({"لا يوجد لاعبين"})
+        else
+            BangDropdown:Set(names)
+        end
+    end
 })
 
-Players.PlayerAdded:Connect(RefreshDropdown)
-Players.PlayerRemoving:Connect(RefreshDropdown)
+BangTab:AddSection({ Name = "نوع البانق" })
 
-local function SpawnJet()
-    local Player = LocalPlayer
-    local Character = Player.Character or Player.CharacterAdded:Wait()
-    local HRP = Character:FindFirstChild("HumanoidRootPart")
-    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-    
-    if not HRP or not Humanoid then return end
+BangTab:AddDropdown({
+    Name = "اختر نوع البانق",
+    Default = "بانق",
+    Multi = false,
+    Options = {"بانق", "بانق للوجه"},
+    Callback = function(Value)
+        selectedBangType = Value
+    end
+})
 
-    local AirSpawner = workspace:FindFirstChild("AirVehicleSpawner")
-    if AirSpawner then
-        local JetStealth = AirSpawner:FindFirstChild("JetStealth")
-        if JetStealth then
-            local RequiredRank = JetStealth:FindFirstChild("RequiredRank")
-            if RequiredRank then
-                RequiredRank:Destroy()
-            end
-        end
-        
-        local OldInvoke = AirSpawner.SpawnVehicle.InvokeServer
-        AirSpawner.SpawnVehicle.InvokeServer = function(self, VehicleName)
-            if VehicleName == "JetStealth" then
-                return OldInvoke(self, VehicleName)
-            end
-            return OldInvoke(self, VehicleName)
-        end
+local function EnableNoclip()
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
     end
     
-    task.wait(0.1)
-    
-    local args = {
-        [1] = "JetStealth",
-    }
-    pcall(function()
-        workspace.AirVehicleSpawner.SpawnVehicle:InvokeServer(table.unpack(args))
+    noclipActive = true
+    noclipConnection = RunService.Heartbeat:Connect(function()
+        if not noclipActive then return end
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
     end)
+end
+
+local function DisableNoclip()
+    noclipActive = false
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
     
-    task.wait(0.2)
-    
-    local Jet = workspace.AirVehicles:FindFirstChild(Player.Name.."Car")
-    if Jet then
-        local Seat = Jet:FindFirstChild("Seats")
-        if Seat then
-            local VehicleSeat = Seat:FindFirstChild("VehicleSeat")
-            if VehicleSeat then
-                repeat
-                    task.wait(0.1)
-                    HRP.CFrame = VehicleSeat.CFrame * CFrame.new(0, 1, 0)
-                until Humanoid.SeatPart == VehicleSeat
+    local char = LocalPlayer.Character
+    if char then
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
             end
         end
-        return Jet
     end
-    return nil
 end
 
-local function BangAction()
-    if not BangActive or not SelectedPlayer then return end
-    
-    local Target = SelectedPlayer
-    if not Target then
-        if not TargetLeftNotified then
-            TargetLeftNotified = true
+local function startBangLoop()
+    if currentConnection then 
+        currentConnection:Disconnect() 
+        currentConnection = nil
+    end
+
+    local function bangAction()
+        if not bangActive or not BangSelected then 
+            return 
         end
-        return
-    else
-        TargetLeftNotified = false
-    end
-    
-    local TargetChar = Target.Character
-    if not TargetChar or not TargetChar:FindFirstChild("Head") or not TargetChar:FindFirstChild("HumanoidRootPart") then
-        return
-    end
-    
-    local Char = LocalPlayer.Character
-    if not Char then return end
-    
-    local TargetHRP = TargetChar.HumanoidRootPart
-    local CharHRP = Char:FindFirstChild("HumanoidRootPart")
-    
-    if TargetHRP and CharHRP then
-        local Offset = TogglePosition and 1 or 3
-        local TargetCFrame = TargetHRP.CFrame
         
-        CharHRP.CFrame = TargetCFrame * CFrame.new(0, 0.5, Offset) * CFrame.Angles(0, math.rad(180), 0)
-        TogglePosition = not TogglePosition
-        task.wait(0.3)
-    end
-end
+        local targetPlayer = BangSelected
+        if not targetPlayer or not targetPlayer.Parent then
+            if not targetLeftNotified then
+                targetLeftNotified = true
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "🚪 طلع اللاعب المستهدف",
+                    Text = (BangSelected and BangSelected.DisplayName or "اللاعب") .. " طلع من الماب",
+                    Duration = 3
+                })
+            end
+            return
+        else
+            targetLeftNotified = false
+        end
 
-local function StartBangLoop()
-    if BangConnection then
-        BangConnection:Disconnect()
-        BangConnection = nil
+        local targetChar = targetPlayer.Character
+        if not targetChar or not targetChar:FindFirstChild("Head") or not targetChar:FindFirstChild("HumanoidRootPart") then
+            return
+        end
+
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            return
+        end
+
+        local targetHRP = targetChar.HumanoidRootPart
+        local charHRP = char.HumanoidRootPart
+        
+        if targetHRP and charHRP then
+            if selectedBangType == "بانق للوجه" then
+                local offset = togglePosition and 1 or 3
+                local targetCFrame = targetHRP.CFrame
+                local newCFrame = targetCFrame * CFrame.new(0, 2.5, -offset)
+                charHRP.CFrame = newCFrame
+            else
+                local offset = togglePosition and 1 or 3
+                local targetCFrame = targetHRP.CFrame
+                local newCFrame = targetCFrame * CFrame.new(0, 0.5, offset)
+                charHRP.CFrame = newCFrame
+            end
+            togglePosition = not togglePosition
+            task.wait(bangSpeeds["بانق"])
+        end
     end
-    
-    BangConnection = RunService.Heartbeat:Connect(BangAction)
+
+    currentConnection = RunService.Heartbeat:Connect(bangAction)
 end
 
 BangTab:AddToggle({
-    Name = "تفعيل البانق بالطائره",
+    Name = "تشغيل البانق",
     Default = false,
     Callback = function(Value)
-        BangActive = Value
-        TargetLeftNotified = false
-        
-        if not SelectedPlayer and Value then
-            BangActive = false
-            return
-        end
-        
+        bangActive = Value
+
         if Value then
-            if RespawnConnection then
-                RespawnConnection:Disconnect()
-                RespawnConnection = nil
+            if not BangSelected then
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Onyxen Hub",
+                    Text = "اختر لاعب اولاً",
+                    Duration = 2
+                })
+                bangActive = false
+                return
             end
             
-            local Jet = SpawnJet()
-            if Jet then
-                StartBangLoop()
-            else
-                BangActive = false
+            EnableNoclip()
+            startBangLoop()
+            
+            if respawnConnection then
+                respawnConnection:Disconnect()
+                respawnConnection = nil
             end
             
-            RespawnConnection = LocalPlayer.CharacterAdded:Connect(function()
+            respawnConnection = LocalPlayer.CharacterAdded:Connect(function(newChar)
                 task.wait(0.5)
-                if BangActive and SelectedPlayer then
-                    if BangConnection then
-                        BangConnection:Disconnect()
-                        BangConnection = nil
+                if bangActive and BangSelected then
+                    if currentConnection then
+                        currentConnection:Disconnect()
+                        currentConnection = nil
                     end
-                    SpawnJet()
-                    StartBangLoop()
+                    startBangLoop()
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "Onyxen Hub",
+                        Text = "تم اعادة تشغيل البانق بعد الموت",
+                        Duration = 2
+                    })
                 end
             end)
-            
         else
-            if BangConnection then
-                BangConnection:Disconnect()
-                BangConnection = nil
+            if currentConnection then
+                currentConnection:Disconnect()
+                currentConnection = nil
             end
-            if RespawnConnection then
-                RespawnConnection:Disconnect()
-                RespawnConnection = nil
+            if respawnConnection then
+                respawnConnection:Disconnect()
+                respawnConnection = nil
             end
-            TogglePosition = false
-            TargetLeftNotified = false
+            togglePosition = false
+            targetLeftNotified = false
+            DisableNoclip()
         end
     end
 })
+
+local function checkTargetRejoin()
+    game.Players.PlayerAdded:Connect(function(newPlayer)
+        if BangSelected and newPlayer.Name == BangSelected.Name then
+            targetLeftNotified = false
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "🎮 دخل اللاعب المستهدف",
+                Text = BangSelected.DisplayName .. " دخل الماب - اعد تفعيل البانق",
+                Duration = 3
+            })
+            
+            if bangActive then
+                bangActive = false
+                if currentConnection then
+                    currentConnection:Disconnect()
+                    currentConnection = nil
+                end
+                if respawnConnection then
+                    respawnConnection:Disconnect()
+                    respawnConnection = nil
+                end
+                togglePosition = false
+                DisableNoclip()
+            end
+        end
+    end)
+end
+
+checkTargetRejoin()
