@@ -326,7 +326,7 @@ Tab1:AddButton({
 })
 
 local BangTab = Window:MakeTab({
-    Title = "البانق",
+    Title = "البانقق",
     Icon = "rbxassetid://75014710749916"
 })
 
@@ -342,7 +342,6 @@ local noclipActive = false
 local noclipConnection = nil
 local currentConnection = nil
 local respawnConnection = nil
-local animationTrack = nil
 
 local bangSpeeds = {
     ["بانق"] = 0.5,
@@ -438,6 +437,26 @@ local function DisableNoclip()
     
     local char = LocalPlayer.Character
     if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterDescendantsInstances = {char}
+            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+            
+            local rayOrigin = hrp.Position + Vector3.new(0, 15, 0)
+            local rayDirection = Vector3.new(0, -30, 0)
+            local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+            
+            if rayResult then
+                local groundPos = rayResult.Position + Vector3.new(0, 3, 0)
+                hrp.CFrame = CFrame.new(groundPos)
+            else
+                hrp.CFrame = hrp.CFrame + Vector3.new(0, 15, 0)
+            end
+        end
+        
+        task.wait(0.2)
+        
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = true
@@ -452,12 +471,10 @@ local function FreezeCharacter()
     
     local humanoid = char:FindFirstChild("Humanoid")
     if humanoid then
-        if animationTrack then
-            animationTrack:Stop()
-            animationTrack = nil
-        end
-        
         humanoid.PlatformStand = true
+        for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+            track:Stop()
+        end
     end
 end
 
@@ -519,8 +536,6 @@ local function startBangLoop()
         local charHRP = char.HumanoidRootPart
         
         if targetHRP and charHRP then
-            FreezeCharacter()
-            
             if selectedBangType == "بانق للوجه" then
                 local offset = togglePosition and 1 or 3
                 local targetCFrame = targetHRP.CFrame
