@@ -1004,7 +1004,7 @@ ShaderTab:AddToggle({
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local function GetPlayerNames()
+local function GetBangPlayerNames()
     local names = {}
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= Players.LocalPlayer then
@@ -1019,26 +1019,26 @@ local BangTab = Window:MakeTab({
     Icon = "rbxassetid://75014710749916"
 })
 
-local selectedPlayer = nil
+local selectedBangPlayer = nil
 
-local PlayerDropdown = BangTab:AddDropdown({
+local BangPlayerDropdown = BangTab:AddDropdown({
     Name = "اختيار اللاعب",
     Default = "",
     Multi = false,
-    Options = GetPlayerNames(),
+    Options = GetBangPlayerNames(),
     Callback = function(name)
-        selectedPlayer = Players:FindFirstChild(name)
+        selectedBangPlayer = Players:FindFirstChild(name)
     end
 })
 
 BangTab:AddButton({
     Name = "تحديث قائمة اللاعبين",
     Callback = function()
-        PlayerDropdown:Set(GetPlayerNames())
+        BangPlayerDropdown:Set(GetBangPlayerNames())
     end
 })
 
-local function enableNoclip()
+local function enableBangNoclip()
     local player = Players.LocalPlayer
     local char = player.Character
     if not char then return end
@@ -1049,7 +1049,7 @@ local function enableNoclip()
     end
 end
 
-local function disableNoclip()
+local function disableBangNoclip()
     local player = Players.LocalPlayer
     local char = player.Character
     if not char then return end
@@ -1059,6 +1059,8 @@ local function disableNoclip()
         end
     end
 end
+
+local BangStates = {}
 
 local function createBangToggle(name, yOffset, faceBang)
     local bangActive = false
@@ -1076,13 +1078,13 @@ local function createBangToggle(name, yOffset, faceBang)
         if not currentHumanoid then return end
 
         currentHumanoid.PlatformStand = true
-        enableNoclip()
+        enableBangNoclip()
 
         if connection then connection:Disconnect() end
 
         connection = RunService.Heartbeat:Connect(function()
-            if bangActive and selectedPlayer then
-                local targetChar = selectedPlayer.Character
+            if bangActive and selectedBangPlayer then
+                local targetChar = selectedBangPlayer.Character
                 if targetChar and targetChar.PrimaryPart then
                     local targetHead = targetChar:FindFirstChild("Head")
                     if targetHead and currentChar and currentChar.PrimaryPart then
@@ -1104,7 +1106,7 @@ local function createBangToggle(name, yOffset, faceBang)
         if currentHumanoid then
             currentHumanoid.PlatformStand = false
         end
-        disableNoclip()
+        disableBangNoclip()
         if connection then
             connection:Disconnect()
             connection = nil
