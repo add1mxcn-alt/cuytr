@@ -327,7 +327,7 @@ Tab1:AddButton({
 
 local ShaderTab = Window:MakeTab({
     Title = "شادرات",
-    Icon = "rbxassetid://75529783306690"
+    Icon = "rbxassetid://10747382750"
 })
 
 local Lighting = game:GetService("Lighting")
@@ -350,7 +350,7 @@ local shaderList = {
     "شادر بحر هادئ وضبابي",
     "شادر فضائي مع توهج النجوم",
     "شادر نار مشتعلة وبخار",
-    "شادر قوس قزح متوهج",
+    "شادر واقعي اسطوري",
     "شادر ضباب ليلي",
     "شادر غابة ضبابية",
     "شادر غروب صحراوي",
@@ -464,13 +464,32 @@ local function applyShader()
         blur.Parent = Lighting
         table.insert(currentEffects, blur)
 
-    elseif selectedShader == "شادر قوس قزح متوهج" then
+    elseif selectedShader == "شادر واقعي اسطوري" then
+        Lighting.Ambient = Color3.fromRGB(180, 185, 200)
+        Lighting.OutdoorAmbient = Color3.fromRGB(150, 160, 180)
+        Lighting.FogStart = 200
+        Lighting.FogEnd = 800
+        Lighting.FogColor = Color3.fromRGB(190, 195, 210)
+        
         local bloom = Instance.new("BloomEffect")
-        bloom.Intensity = 2
-        bloom.Size = 35
-        bloom.Threshold = 0.6
+        bloom.Intensity = 0.5
+        bloom.Size = 15
+        bloom.Threshold = 0.9
         bloom.Parent = Lighting
         table.insert(currentEffects, bloom)
+        
+        local colorCorrection = Instance.new("ColorCorrectionEffect")
+        colorCorrection.Contrast = 0.1
+        colorCorrection.Brightness = 0.1
+        colorCorrection.Saturation = 0.2
+        colorCorrection.Parent = Lighting
+        table.insert(currentEffects, colorCorrection)
+        
+        local sunrays = Instance.new("SunRaysEffect")
+        sunrays.Intensity = 0.1
+        sunrays.Spread = 0.8
+        sunrays.Parent = Lighting
+        table.insert(currentEffects, sunrays)
 
     elseif selectedShader == "شادر ضباب ليلي" then
         Lighting.Ambient = Color3.fromRGB(30,30,50)
