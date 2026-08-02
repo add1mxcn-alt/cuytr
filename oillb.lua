@@ -536,17 +536,22 @@ local function startBangLoop()
         local charHRP = char.HumanoidRootPart
         
         if targetHRP and charHRP then
+            local targetPos = targetHRP.Position
+            local charPos = charHRP.Position
+            
+            local direction = (targetPos - charPos).Unit
+            local lookAngle = math.atan2(direction.X, direction.Z)
+            
             if selectedBangType == "بانق للوجه" then
                 local offset = togglePosition and 1 or 3
-                local targetCFrame = targetHRP.CFrame
-                local newCFrame = targetCFrame * CFrame.new(0, 2.5, -offset)
-                charHRP.CFrame = newCFrame
+                local newPos = targetPos + Vector3.new(0, 2.5, 0) + (targetHRP.CFrame.LookVector * -offset)
+                charHRP.CFrame = CFrame.new(newPos) * CFrame.Angles(0, math.rad(180), 0)
             else
                 local offset = togglePosition and 1 or 3
-                local targetCFrame = targetHRP.CFrame
-                local newCFrame = targetCFrame * CFrame.new(0, 0.5, offset) * CFrame.Angles(0, math.rad(180), 0)
-                charHRP.CFrame = newCFrame
+                local newPos = targetPos + Vector3.new(0, 0.5, 0) + (targetHRP.CFrame.LookVector * offset)
+                charHRP.CFrame = CFrame.new(newPos) * CFrame.Angles(0, math.atan2((targetPos - newPos).X, (targetPos - newPos).Z), 0)
             end
+            
             togglePosition = not togglePosition
             task.wait(bangSpeeds["بانق"])
         end
