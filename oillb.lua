@@ -4097,6 +4097,81 @@ CarTab:AddButton({
     end
 })
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+
+local CarState = {
+    Active = false,
+    Speed = 0.05,
+    Connection = nil
+}
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+
+local CarState2 = {
+    Active = false,
+    Speed = 0.05,
+    Connection = nil
+}
+
+CarTab2:AddSlider({
+    Name = "سرعة تلوين السيارة",
+    Min = 1,
+    Max = 20,
+    Default = 10,
+    Callback = function(Value)
+        CarState2.Speed = Value / 200
+    end
+})
+
+CarTab2:AddToggle({
+    Name = "تفعيل تلوين السيارة",
+    Default = false,
+    Callback = function(Value)
+        CarState2.Active = Value
+        
+        if CarState2.Connection then
+            CarState2.Connection:Disconnect()
+            CarState2.Connection = nil
+        end
+        
+        if not Value then return end
+
+        CarState2.Connection = RunService.RenderStepped:Connect(function()
+            if not CarState2.Active then
+                CarState2.Connection:Disconnect()
+                CarState2.Connection = nil
+                return
+            end
+
+            local PlayerGui = Player:FindFirstChild("PlayerGui")
+            if not PlayerGui then return end
+            
+            local MainGUIHandler = PlayerGui:FindFirstChild("MainGUIHandler")
+            if not MainGUIHandler then return end
+            
+            local CarControl = MainGUIHandler:FindFirstChild("CarControl")
+            if not CarControl then return end
+            
+            local ColorPicks = CarControl:FindFirstChild("ColorPicks")
+            if not ColorPicks then return end
+            
+            local SetColor = ColorPicks:FindFirstChild("SetColor")
+            if not SetColor then return end
+
+            local Color = Color3.fromHSV(math.random(), 1, 1)
+            pcall(function()
+                SetColor:FireServer(Color)
+            end)
+            
+            task.wait(CarState2.Speed)
+        end)
+    end
+})
+
 CarTab:AddToggle({
     Name = "تكرار الأضواء الأمامية",
     Default = false,
@@ -5271,23 +5346,16 @@ SongTab:AddToggle({
 
 local function SetupRGBTab(Window)
     local RgbTab = Window:MakeTab({ 
-        Title = "آر جي بي", 
+        Title = "تلوين", 
         Icon = "rbxassetid://10734910187" 
     })
 
-    RgbTab:AddSection({ "الأدوات" })
+    RgbTab:AddSection({ "الشعر" })
 
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local RunService = game:GetService("RunService")
     local Player = Players.LocalPlayer
-
-    local ToolState = {
-        Running = false,
-        ToolName = "BabyRattle",
-        ToolSpeed = 0.05,
-        Connection = nil
-    }
 
     local HairState = {
         Active = false,
@@ -5307,25 +5375,10 @@ local function SetupRGBTab(Window)
         Connection = nil
     }
 
-    local BicycleState = {
+    local HouseState = {
         Active = false,
         Speed = 0.05,
         Connection = nil
-    }
-
-    local Tools = {
-        ["دهان || PaintRoller"] = "PaintRoller",
-        ["أحمر شفاه || Lipstick"] = "Lipstick",
-        ["قوس || Bow"] = "Bow",
-        ["راديو || Boombox"] = "Boombox",
-        ["ترمس || Thermos"] = "Thermos",
-        ["دونات || Donut"] = "Donut",
-        ["فرشاة خيل || HorseBrush"] = "HorseBrush",
-        ["هراوات || GlowingBatons"] = "GlowingBatons",
-        ["مكبر صوت || Megaphone"] = "Megaphone",
-        ["شمعة || Candle"] = "Candle",
-        ["مشعل || GuardTorch"] = "GuardTorch",
-        ["لعبة أطفال || BabyRattle"] = "BabyRattle"
     }
 
     local BodyColors = {
@@ -5343,120 +5396,6 @@ local function SetupRGBTab(Window)
         Color3.new(1, 1, 1), Color3.new(0, 1, 1), Color3.new(0.5, 1, 0.5)
     }
 
-    local function EquipTool(Name)
-        local Char = Player.Character or Player.CharacterAdded:Wait()
-        local Hum = Char:WaitForChild("Humanoid")
-        local Tool = Player.Backpack:FindFirstChild(Name)
-        if Tool then
-            Tool.Parent = Char
-            Hum:EquipTool(Tool)
-            return Tool
-        end
-        return nil
-    end
-
-    local function HSV(T)
-        return Color3.fromHSV(T % 1, 1, 1)
-    end
-
-    RgbTab:AddDropdown({
-        Name = "اختيار الأداة",
-        Default = "لعبة أطفال || BabyRattle",
-        Options = {"دهان || PaintRoller", "أحمر شفاه || Lipstick", "قوس || Bow", 
-                  "راديو || Boombox", "ترمس || Thermos", "دونات || Donut", 
-                  "فرشاة خيل || HorseBrush", "هراوات || GlowingBatons", 
-                  "مكبر صوت || Megaphone", "شمعة || Candle", "مشعل || GuardTorch", 
-                  "لعبة أطفال || BabyRattle"},
-        Callback = function(Value)
-            ToolState.ToolName = Tools[Value] or "BabyRattle"
-        end
-    })
-
-    RgbTab:AddSlider({
-        Name = "سرعة التلوين",
-        Min = 1,
-        Max = 20,
-        Default = 10,
-        Callback = function(Value)
-            ToolState.ToolSpeed = Value / 200
-        end
-    })
-
-    RgbTab:AddToggle({
-        Name = "تفعيل آر جي بي للأدوات",
-        Default = false,
-        Callback = function(State)
-            if ToolState.Connection then
-                ToolState.Connection:Disconnect()
-                ToolState.Connection = nil
-            end
-            
-            ToolState.Running = State
-            if not State then return end
-
-            task.spawn(function()
-                local RE = ReplicatedStorage:FindFirstChild("RE")
-                if not RE then return end
-
-                pcall(function()
-                    if RE:FindFirstChild("1Clea1rTool1s") then
-                        RE["1Clea1rTool1s"]:FireServer("ClearAllTools")
-                    end
-                end)
-                
-                task.wait(0.2)
-                
-                pcall(function()
-                    if RE:FindFirstChild("1Too1l") then
-                        RE["1Too1l"]:InvokeServer("PickingTools", ToolState.ToolName)
-                    end
-                end)
-                
-                task.wait(0.3)
-
-                local Tool = EquipTool(ToolState.ToolName)
-                if not Tool then return end
-
-                local PlayerGui = Player:FindFirstChild("PlayerGui")
-                if not PlayerGui then return end
-                
-                local ToolGui = PlayerGui:FindFirstChild("ToolGui")
-                if not ToolGui then return end
-                
-                local ToolSettings = ToolGui:FindFirstChild("ToolSettings")
-                if not ToolSettings then return end
-                
-                local Settings = ToolSettings:FindFirstChild("Settings")
-                if not Settings then return end
-                
-                local PropsColor = Settings:FindFirstChild("PropsColor")
-                if not PropsColor then return end
-                
-                local SetColor = PropsColor:FindFirstChild("SetColor")
-                if not SetColor then return end
-
-                local Hue = 0
-                local Current = HSV(0)
-
-                ToolState.Connection = RunService.RenderStepped:Connect(function(Delta)
-                    if not ToolState.Running then
-                        ToolState.Connection:Disconnect()
-                        ToolState.Connection = nil
-                        return
-                    end
-                    Hue += Delta * ToolState.ToolSpeed * 10
-                    local Target = HSV(Hue)
-                    Current = Current:Lerp(Target, Delta * 10)
-                    pcall(function()
-                        SetColor:FireServer(Current)
-                    end)
-                end)
-            end)
-        end
-    })
-
-    RgbTab:AddSection({ "الشعر" })
-
     RgbTab:AddSlider({
         Name = "سرعة التلوين",
         Min = 1,
@@ -5468,7 +5407,7 @@ local function SetupRGBTab(Window)
     })
 
     RgbTab:AddToggle({
-        Name = "تفعيل آر جي بي للشعر",
+        Name = "تفعيل تلوين الشعر",
         Default = false,
         Callback = function(Value)
             HairState.Active = Value
@@ -5516,7 +5455,7 @@ local function SetupRGBTab(Window)
     })
 
     RgbTab:AddToggle({
-        Name = "تفعيل آر جي بي للجسم",
+        Name = "تفعيل تلوين الجسم",
         Default = false,
         Callback = function(Value)
             BodyState.Active = Value
@@ -5564,7 +5503,7 @@ local function SetupRGBTab(Window)
     })
 
     RgbTab:AddToggle({
-        Name = "تفعيل آر جي بي للسيارة",
+        Name = "تفعيل تلوين السيارة",
         Default = false,
         Callback = function(Value)
             VehicleState.Active = Value
@@ -5608,53 +5547,62 @@ local function SetupRGBTab(Window)
         end
     })
 
-    RgbTab:AddSection({ "الدراجة" })
+RgbTab:AddSection({ "البيت" })
 
-    RgbTab:AddSlider({
-        Name = "سرعة التلوين",
-        Min = 1,
-        Max = 20,
-        Default = 10,
-        Callback = function(Value)
-            BicycleState.Speed = Value / 200
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+
+local HouseState2 = {
+    Active = false,
+    Speed = 0.05,
+    Connection = nil
+}
+
+rgbTab:AddSlider({
+    Name = "سرعة تلوين البيت",
+    Min = 1,
+    Max = 20,
+    Default = 10,
+    Callback = function(Value)
+        HouseState2.Speed = Value / 200
+    end
+})
+
+rgbTab:AddToggle({
+    Name = "تفعيل تلوين البيت",
+    Default = false,
+    Callback = function(Value)
+        HouseState2.Active = Value
+        
+        if HouseState2.Connection then
+            HouseState2.Connection:Disconnect()
+            HouseState2.Connection = nil
         end
-    })
+        
+        if not Value then return end
 
-    RgbTab:AddToggle({
-        Name = "تفعيل آر جي بي للدراجة",
-        Default = false,
-        Callback = function(Value)
-            BicycleState.Active = Value
-            
-            if BicycleState.Connection then
-                BicycleState.Connection:Disconnect()
-                BicycleState.Connection = nil
+        HouseState2.Connection = RunService.RenderStepped:Connect(function()
+            if not HouseState2.Active then
+                HouseState2.Connection:Disconnect()
+                HouseState2.Connection = nil
+                return
             end
+
+            local RE = ReplicatedStorage:FindFirstChild("RE")
+            if not RE then return end
             
-            if not Value then return end
+            local Event = RE:FindFirstChild("1Player1sHous1e")
+            if not Event then return end
 
-            BicycleState.Connection = RunService.RenderStepped:Connect(function()
-                if not BicycleState.Active then
-                    BicycleState.Connection:Disconnect()
-                    BicycleState.Connection = nil
-                    return
-                end
-
-                local RE = ReplicatedStorage:FindFirstChild("RE")
-                if not RE then return end
-                
-                local Event = RE:FindFirstChild("1Player1sCa1r")
-                if not Event then return end
-
-                local Color = Color3.fromHSV(math.random(), 1, 1)
-                pcall(function()
-                    Event:FireServer("NoMotorColor", Color)
-                end)
-                
-                task.wait(BicycleState.Speed)
+            local Color = Color3.fromHSV(tick() % 1, 1, 1)
+            pcall(function()
+                Event:FireServer("ColorPickHouse", Color)
             end)
-        end
-    })
-end
+            
+            task.wait(HouseState2.Speed)
+        end)
+    end
+})
 
 SetupRGBTab(Window)
