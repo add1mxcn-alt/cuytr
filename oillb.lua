@@ -5269,7 +5269,6 @@ SongTab:AddToggle({
     end
 })
 
--- اجعل كل شيء داخل نطاق محلي
 local function SetupRGBTab(Window)
     local RgbTab = Window:MakeTab({ 
         Title = "آر جي بي", 
@@ -5283,28 +5282,35 @@ local function SetupRGBTab(Window)
     local RunService = game:GetService("RunService")
     local Player = Players.LocalPlayer
 
-    -- استخدام متغيرات محلية فقط
     local ToolState = {
         Running = false,
         ToolName = "BabyRattle",
-        ToolSpeed = 0.3,
+        ToolSpeed = 0.05,
         Connection = nil
     }
 
     local HairState = {
         Active = false,
-        Speed = 0.1,
-        Running = false
+        Speed = 0.05,
+        Connection = nil
     }
 
     local BodyState = {
         Active = false,
-        Speed = 0.3
+        Speed = 0.05,
+        Connection = nil
+    }
+
+    local VehicleState = {
+        Active = false,
+        Speed = 0.05,
+        Connection = nil
     }
 
     local BicycleState = {
         Active = false,
-        Speed = 3
+        Speed = 0.05,
+        Connection = nil
     }
 
     local Tools = {
@@ -5320,6 +5326,32 @@ local function SetupRGBTab(Window)
         ["شمعة || Candle"] = "Candle",
         ["مشعل || GuardTorch"] = "GuardTorch",
         ["لعبة أطفال || BabyRattle"] = "BabyRattle"
+    }
+
+    local BodyColors = {
+        Color3.fromRGB(139, 69, 19), Color3.fromRGB(255, 255, 0), 
+        Color3.fromRGB(0, 0, 255), Color3.fromRGB(0, 255, 0), 
+        Color3.fromRGB(255, 192, 203), Color3.fromRGB(255, 0, 0), 
+        Color3.fromRGB(255, 165, 0), Color3.fromRGB(128, 0, 128), 
+        Color3.fromRGB(255, 255, 255), Color3.fromRGB(0, 0, 0), 
+        Color3.fromRGB(128, 128, 128), Color3.fromRGB(255, 215, 0), 
+        Color3.fromRGB(0, 255, 255), Color3.fromRGB(255, 0, 255), 
+        Color3.fromRGB(0, 128, 128), Color3.fromRGB(128, 0, 0), 
+        Color3.fromRGB(0, 128, 0), Color3.fromRGB(0, 0, 128), 
+        Color3.fromRGB(128, 128, 0), Color3.fromRGB(75, 0, 130), 
+        Color3.fromRGB(255, 20, 147), Color3.fromRGB(255, 99, 71), 
+        Color3.fromRGB(255, 140, 0), Color3.fromRGB(154, 205, 50), 
+        Color3.fromRGB(0, 255, 127), Color3.fromRGB(70, 130, 180), 
+        Color3.fromRGB(147, 112, 219), Color3.fromRGB(255, 182, 193), 
+        Color3.fromRGB(255, 218, 185), Color3.fromRGB(240, 230, 140), 
+        Color3.fromRGB(210, 180, 140), Color3.fromRGB(188, 143, 143)
+    }
+
+    local HairColors = {
+        Color3.new(1, 0, 0), Color3.new(1, 0.5, 0), Color3.new(1, 1, 0),
+        Color3.new(0, 1, 0), Color3.new(0, 0.5, 1), Color3.new(0, 0, 1),
+        Color3.new(0.5, 0, 1), Color3.new(1, 0, 1), Color3.new(1, 0.5, 0.5),
+        Color3.new(1, 1, 1), Color3.new(0, 1, 1), Color3.new(0.5, 1, 0.5)
     }
 
     local function EquipTool(Name)
@@ -5338,7 +5370,10 @@ local function SetupRGBTab(Window)
         return Color3.fromHSV(T % 1, 1, 1)
     end
 
-    -- اختيار الأداة
+    local function GetRainbowColor()
+        return Color3.fromHSV(tick() % 1, 1, 1)
+    end
+
     RgbTab:AddDropdown({
         Name = "اختيار الأداة",
         Default = "لعبة أطفال || BabyRattle",
@@ -5352,23 +5387,20 @@ local function SetupRGBTab(Window)
         end
     })
 
-    -- سرعة التلوين
     RgbTab:AddSlider({
         Name = "سرعة التلوين",
         Min = 1,
-        Max = 10,
-        Default = 3,
+        Max = 20,
+        Default = 10,
         Callback = function(Value)
-            ToolState.ToolSpeed = Value / 10
+            ToolState.ToolSpeed = Value / 200
         end
     })
 
-    -- تفعيل RGB
     RgbTab:AddToggle({
         Name = "تفعيل آر جي بي للأدوات",
         Default = false,
         Callback = function(State)
-            -- إيقاف التشغيل القديم
             if ToolState.Connection then
                 ToolState.Connection:Disconnect()
                 ToolState.Connection = nil
@@ -5378,11 +5410,9 @@ local function SetupRGBTab(Window)
             if not State then return end
 
             task.spawn(function()
-                -- التحقق من وجود الـ RE
                 local RE = ReplicatedStorage:FindFirstChild("RE")
                 if not RE then return end
 
-                -- محاولة مسح الأدوات (مع حماية من الأخطاء)
                 pcall(function()
                     if RE:FindFirstChild("1Clea1rTool1s") then
                         RE["1Clea1rTool1s"]:FireServer("ClearAllTools")
@@ -5391,7 +5421,6 @@ local function SetupRGBTab(Window)
                 
                 task.wait(0.2)
                 
-                -- إعطاء الأداة
                 pcall(function()
                     if RE:FindFirstChild("1Too1l") then
                         RE["1Too1l"]:InvokeServer("PickingTools", ToolState.ToolName)
@@ -5400,14 +5429,9 @@ local function SetupRGBTab(Window)
                 
                 task.wait(0.3)
 
-                -- تجهيز الأداة
                 local Tool = EquipTool(ToolState.ToolName)
-                if not Tool then 
-                    warn("لم يتم العثور على الأداة: " .. ToolState.ToolName)
-                    return 
-                end
+                if not Tool then return end
 
-                -- البحث عن SetColor
                 local PlayerGui = Player:FindFirstChild("PlayerGui")
                 if not PlayerGui then return end
                 
@@ -5424,12 +5448,8 @@ local function SetupRGBTab(Window)
                 if not PropsColor then return end
                 
                 local SetColor = PropsColor:FindFirstChild("SetColor")
-                if not SetColor then 
-                    warn("لم يتم العثور على SetColor")
-                    return 
-                end
+                if not SetColor then return end
 
-                -- بدء التلوين
                 local Hue = 0
                 local Current = HSV(0)
 
@@ -5439,9 +5459,9 @@ local function SetupRGBTab(Window)
                         ToolState.Connection = nil
                         return
                     end
-                    Hue += Delta * ToolState.ToolSpeed
+                    Hue += Delta * ToolState.ToolSpeed * 10
                     local Target = HSV(Hue)
-                    Current = Current:Lerp(Target, Delta * 5)
+                    Current = Current:Lerp(Target, Delta * 10)
                     pcall(function()
                         SetColor:FireServer(Current)
                     end)
@@ -5450,76 +5470,63 @@ local function SetupRGBTab(Window)
         end
     })
 
-    -- قسم الشعر
     RgbTab:AddSection({ "الشعر" })
-
-    local HairColors = {
-        Color3.new(1, 1, 0), Color3.new(0, 0, 1), Color3.new(1, 0, 1), 
-        Color3.new(1, 1, 1), Color3.new(0, 1, 0), Color3.new(0.5, 0, 1), 
-        Color3.new(1, 0.647, 0), Color3.new(0, 1, 1)
-    }
 
     RgbTab:AddSlider({
         Name = "سرعة التلوين",
         Min = 1,
-        Max = 10,
-        Default = 1,
+        Max = 20,
+        Default = 10,
         Callback = function(Value)
-            HairState.Speed = Value / 10
+            HairState.Speed = Value / 200
         end
     })
-
-    local function ChangeHairColor()
-        local Index = 1
-        local RE = ReplicatedStorage:FindFirstChild("RE")
-        if not RE then return end
-        
-        local Event = RE:FindFirstChild("1Max1y")
-        if not Event then return end
-        
-        while HairState.Active do
-            if not HairState.Active then break end
-            pcall(function()
-                Event:FireServer("ChangeHairColor2", HairColors[Index])
-            end)
-            task.wait(HairState.Speed)
-            Index = Index % #HairColors + 1
-        end
-    end
 
     RgbTab:AddToggle({
         Name = "تفعيل آر جي بي للشعر",
         Default = false,
         Callback = function(Value)
             HairState.Active = Value
-            if HairState.Active then
-                task.spawn(ChangeHairColor)
+            
+            if HairState.Connection then
+                HairState.Connection:Disconnect()
+                HairState.Connection = nil
             end
+            
+            if not Value then return end
+
+            HairState.Connection = RunService.RenderStepped:Connect(function()
+                if not HairState.Active then
+                    HairState.Connection:Disconnect()
+                    HairState.Connection = nil
+                    return
+                end
+
+                local RE = ReplicatedStorage:FindFirstChild("RE")
+                if not RE then return end
+                
+                local Event = RE:FindFirstChild("1Max1y")
+                if not Event then return end
+
+                local RandomColor = HairColors[math.random(1, #HairColors)]
+                pcall(function()
+                    Event:FireServer("ChangeHairColor2", RandomColor)
+                end)
+                
+                task.wait(HairState.Speed)
+            end)
         end
     })
 
-    -- قسم الجسم
     RgbTab:AddSection({ "الجسم" })
-
-    local BodyColors = {
-        "بني فاتح", "أصفر فاتح", "أزرق فاتح", "أخضر فاتح", "وردي فاتح",
-        "أحمر غامق", "برتقالي", "أزرق غامق", "بنفسجي غامق", "أخضر غامق",
-        "أصفر غامق", "أبيض", "أسود", "رمادي غامق", "رمادي", "رمادي فاتح",
-        "أحمر", "أخضر مصفر", "أزرق مخضر", "أرجواني", "وردي", "بني محمر",
-        "أخضر ترابي", "أحمر رملي", "أزرق رملي", "أخضر رملي", "أخضر داكن",
-        "أزرق بحري", "معجون أسنان", "سماوي", "وردي نيون", "قرمزي",
-        "أرجواني ملكي", "برتقالي نيون", "أخضر نيون", "وردي نيون", "أزرق نيون",
-        "ذهبي", "ذهبي لامع", "أصفر جديد", "برتقالي غامق", "أزرق عميق",
-        "كستنائي", "أحمر كستنائي"
-    }
 
     RgbTab:AddSlider({
         Name = "سرعة التلوين",
         Min = 1,
-        Max = 10,
-        Default = 3,
+        Max = 20,
+        Default = 10,
         Callback = function(Value)
-            BodyState.Speed = Value / 10
+            BodyState.Speed = Value / 200
         end
     })
 
@@ -5528,70 +5535,140 @@ local function SetupRGBTab(Window)
         Default = false,
         Callback = function(Value)
             BodyState.Active = Value
-            if BodyState.Active then
-                task.spawn(function()
-                    local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
-                    if not Remotes then return end
-                    
-                    local ChangeBodyColor = Remotes:FindFirstChild("ChangeBodyColor")
-                    if not ChangeBodyColor then return end
-                    
-                    while BodyState.Active do
-                        for _, Color in ipairs(BodyColors) do
-                            if not BodyState.Active then break end
-                            pcall(function()
-                                ChangeBodyColor:FireServer(Color)
-                            end)
-                            task.wait(BodyState.Speed)
-                        end
-                    end
-                end)
+            
+            if BodyState.Connection then
+                BodyState.Connection:Disconnect()
+                BodyState.Connection = nil
             end
+            
+            if not Value then return end
+
+            BodyState.Connection = RunService.RenderStepped:Connect(function()
+                if not BodyState.Active then
+                    BodyState.Connection:Disconnect()
+                    BodyState.Connection = nil
+                    return
+                end
+
+                local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
+                if not Remotes then return end
+                
+                local ChangeBodyColor = Remotes:FindFirstChild("ChangeBodyColor")
+                if not ChangeBodyColor then return end
+
+                local RandomColor = BodyColors[math.random(1, #BodyColors)]
+                pcall(function()
+                    ChangeBodyColor:FireServer(RandomColor)
+                end)
+                
+                task.wait(BodyState.Speed)
+            end)
         end
     })
 
-    -- قسم الدراجة
+    RgbTab:AddSection({ "السيارة" })
+
+    RgbTab:AddSlider({
+        Name = "سرعة التلوين",
+        Min = 1,
+        Max = 20,
+        Default = 10,
+        Callback = function(Value)
+            VehicleState.Speed = Value / 200
+        end
+    })
+
+    RgbTab:AddToggle({
+        Name = "تفعيل آر جي بي للسيارة",
+        Default = false,
+        Callback = function(Value)
+            VehicleState.Active = Value
+            
+            if VehicleState.Connection then
+                VehicleState.Connection:Disconnect()
+                VehicleState.Connection = nil
+            end
+            
+            if not Value then return end
+
+            VehicleState.Connection = RunService.RenderStepped:Connect(function()
+                if not VehicleState.Active then
+                    VehicleState.Connection:Disconnect()
+                    VehicleState.Connection = nil
+                    return
+                end
+
+                local PlayerGui = Player:FindFirstChild("PlayerGui")
+                if not PlayerGui then return end
+                
+                local MainGUIHandler = PlayerGui:FindFirstChild("MainGUIHandler")
+                if not MainGUIHandler then return end
+                
+                local VehicleControl = MainGUIHandler:FindFirstChild("VehicleControl")
+                if not VehicleControl then return end
+                
+                local UIColorPicker = VehicleControl:FindFirstChild("UIColorPicker")
+                if not UIColorPicker then return end
+                
+                local SetColor = UIColorPicker:FindFirstChild("SetColor")
+                if not SetColor then return end
+
+                local Color = Color3.fromHSV(math.random(), 1, 1)
+                pcall(function()
+                    SetColor:FireServer(Color)
+                end)
+                
+                task.wait(VehicleState.Speed)
+            end)
+        end
+    })
+
     RgbTab:AddSection({ "الدراجة" })
 
     RgbTab:AddSlider({
         Name = "سرعة التلوين",
         Min = 1,
-        Max = 10,
-        Default = 3,
+        Max = 20,
+        Default = 10,
         Callback = function(Value)
-            BicycleState.Speed = Value
+            BicycleState.Speed = Value / 200
         end
     })
-
-    local function GetRainbowColor(SpeedMultiplier)
-        local H = (tick() * (SpeedMultiplier/10) % 5) / 5
-        return Color3.fromHSV(H, 1, 1)
-    end
 
     RgbTab:AddToggle({
         Name = "تفعيل آر جي بي للدراجة",
         Default = false,
         Callback = function(Value)
             BicycleState.Active = Value
-            if BicycleState.Active then
-                task.spawn(function()
-                    local RE = ReplicatedStorage:FindFirstChild("RE")
-                    if not RE then return end
-                    
-                    local Event = RE:FindFirstChild("1Player1sCa1r")
-                    if not Event then return end
-                    
-                    while BicycleState.Active do
-                        pcall(function()
-                            Event:FireServer("NoMotorColor", GetRainbowColor(BicycleState.Speed))
-                        end)
-                        task.wait(0.1)
-                    end
-                end)
+            
+            if BicycleState.Connection then
+                BicycleState.Connection:Disconnect()
+                BicycleState.Connection = nil
             end
+            
+            if not Value then return end
+
+            BicycleState.Connection = RunService.RenderStepped:Connect(function()
+                if not BicycleState.Active then
+                    BicycleState.Connection:Disconnect()
+                    BicycleState.Connection = nil
+                    return
+                end
+
+                local RE = ReplicatedStorage:FindFirstChild("RE")
+                if not RE then return end
+                
+                local Event = RE:FindFirstChild("1Player1sCa1r")
+                if not Event then return end
+
+                pcall(function()
+                    Event:FireServer("NoMotorColor", GetRainbowColor())
+                end)
+                
+                task.wait(BicycleState.Speed)
+            end)
         end
     })
 end
 
--- استدعاء الدالة مع نافذة المميزات الرئيسية
 SetupRGBTab(Window)
