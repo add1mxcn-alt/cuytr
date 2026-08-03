@@ -5329,22 +5329,11 @@ local function SetupRGBTab(Window)
     }
 
     local BodyColors = {
-        Color3.fromRGB(139, 69, 19), Color3.fromRGB(255, 255, 0), 
-        Color3.fromRGB(0, 0, 255), Color3.fromRGB(0, 255, 0), 
-        Color3.fromRGB(255, 192, 203), Color3.fromRGB(255, 0, 0), 
-        Color3.fromRGB(255, 165, 0), Color3.fromRGB(128, 0, 128), 
-        Color3.fromRGB(255, 255, 255), Color3.fromRGB(0, 0, 0), 
-        Color3.fromRGB(128, 128, 128), Color3.fromRGB(255, 215, 0), 
-        Color3.fromRGB(0, 255, 255), Color3.fromRGB(255, 0, 255), 
-        Color3.fromRGB(0, 128, 128), Color3.fromRGB(128, 0, 0), 
-        Color3.fromRGB(0, 128, 0), Color3.fromRGB(0, 0, 128), 
-        Color3.fromRGB(128, 128, 0), Color3.fromRGB(75, 0, 130), 
-        Color3.fromRGB(255, 20, 147), Color3.fromRGB(255, 99, 71), 
-        Color3.fromRGB(255, 140, 0), Color3.fromRGB(154, 205, 50), 
-        Color3.fromRGB(0, 255, 127), Color3.fromRGB(70, 130, 180), 
-        Color3.fromRGB(147, 112, 219), Color3.fromRGB(255, 182, 193), 
-        Color3.fromRGB(255, 218, 185), Color3.fromRGB(240, 230, 140), 
-        Color3.fromRGB(210, 180, 140), Color3.fromRGB(188, 143, 143)
+        "Pastel light blue", "Pastel pink", "Pastel yellow", "Pastel green",
+        "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Pink",
+        "White", "Black", "Gray", "Brown", "Cyan", "Magenta", "Lime",
+        "Teal", "Navy", "Maroon", "Olive", "Gold", "Silver", "Coral",
+        "Crimson", "Indigo", "Violet", "Turquoise", "Peach", "Mint"
     }
 
     local HairColors = {
@@ -5368,10 +5357,6 @@ local function SetupRGBTab(Window)
 
     local function HSV(T)
         return Color3.fromHSV(T % 1, 1, 1)
-    end
-
-    local function GetRainbowColor()
-        return Color3.fromHSV(tick() % 1, 1, 1)
     end
 
     RgbTab:AddDropdown({
@@ -5604,13 +5589,13 @@ local function SetupRGBTab(Window)
                 local MainGUIHandler = PlayerGui:FindFirstChild("MainGUIHandler")
                 if not MainGUIHandler then return end
                 
-                local VehicleControl = MainGUIHandler:FindFirstChild("VehicleControl")
-                if not VehicleControl then return end
+                local CarControl = MainGUIHandler:FindFirstChild("CarControl")
+                if not CarControl then return end
                 
-                local UIColorPicker = VehicleControl:FindFirstChild("UIColorPicker")
-                if not UIColorPicker then return end
+                local ColorPicks = CarControl:FindFirstChild("ColorPicks")
+                if not ColorPicks then return end
                 
-                local SetColor = UIColorPicker:FindFirstChild("SetColor")
+                local SetColor = ColorPicks:FindFirstChild("SetColor")
                 if not SetColor then return end
 
                 local Color = Color3.fromHSV(math.random(), 1, 1)
@@ -5661,8 +5646,9 @@ local function SetupRGBTab(Window)
                 local Event = RE:FindFirstChild("1Player1sCa1r")
                 if not Event then return end
 
+                local Color = Color3.fromHSV(math.random(), 1, 1)
                 pcall(function()
-                    Event:FireServer("NoMotorColor", GetRainbowColor())
+                    Event:FireServer("NoMotorColor", Color)
                 end)
                 
                 task.wait(BicycleState.Speed)
