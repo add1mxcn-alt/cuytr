@@ -5470,57 +5470,88 @@ end
 SetupRGBTab(Window)
 
 local AntiTab = Window:MakeTab({
-    Title = "المضادات",
+    Title = "مضادات",
     Icon = "rbxassetid://10734950020"
 })
 
 AntiTab:AddSection({ Name = "مضاد الموزه فيه بعض الاخطاء" })
-
 AntiTab:AddSection({ Name = "اذا اردت ان ترقص او تمسك اشياء ومايشتلغو الانميشن طفي المضاد تبع الموزه" })
-
 AntiTab:AddSection({ Name = "أنصحك فيه عندما يسوي شخص عليك سبام موزه" })
-
 AntiTab:AddSection({ Name = "حتى تلعب طبيعي مع الانميشنات" })
 
-local ToggleState = false
-local activeConnections = {}
+local AntiData = {
+    ToggleState = false,
+    activeConnections = {},
+    enabledBaby = false,
+    antiSitActive = false,
+    enabledCopy = false,
+    AntiSkyboxEnabled = false,
+    HiddenPlayers = {},
+    OriginalData = {},
+    SpamLog = {},
+    AntiKickData = {
+        Enabled = false,
+        __loaded = false,
+        SendNotifications = true,
+        CheckCaller = true
+    },
+    PlayerDoorData = {},
+    HiddenDoors = {},
+    objetosRestaurados = {},
+    lastSafePos = Vector3.new(-26.09, 2.79, 6.11),
+    avoidConn = nil,
+    conexaoAutoRemocao = nil,
+    savedParts = {},
+    invisible = false
+}
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local RS = ReplicatedStorage
+local Remotes = RS:WaitForChild("Remotes")
+
+local function TeleportCarroNotificacao(msg)
+    print("Nova Hub "..msg)
+end
 
 AntiTab:AddToggle({
     Name = "مضاد الموزه",
     Default = false,
     Callback = function(Value)
-        ToggleState = Value
+        AntiData.ToggleState = Value
         
-        local Player = game.Players.LocalPlayer
-
-        for _, conn in ipairs(activeConnections) do
+        for _, conn in ipairs(AntiData.activeConnections) do
             conn:Disconnect()
         end
-        activeConnections = {}
+        AntiData.activeConnections = {}
 
-        if ToggleState then
+        if AntiData.ToggleState then
             local function SetupAntiBanana(Character)
                 local Humanoid = Character:WaitForChild("Humanoid")
-                local Animator = Humanoid:WaitForChild("Animator", 5)
+                local Animator = Humanoid:FindFirstChild("Animator")
                 local originalWalkSpeed = Humanoid.WalkSpeed
 
-                table.insert(activeConnections, Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-                    if not ToggleState then return end
+                table.insert(AntiData.activeConnections, Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+                    if not AntiData.ToggleState then return end
                     if Humanoid.WalkSpeed > originalWalkSpeed + 5 or Humanoid.WalkSpeed < originalWalkSpeed - 5 then
                         Humanoid.WalkSpeed = originalWalkSpeed
                     end
                 end))
 
-                table.insert(activeConnections, Character.ChildAdded:Connect(function(child)
-                    if not ToggleState then return end
+                table.insert(AntiData.activeConnections, Character.ChildAdded:Connect(function(child)
+                    if not AntiData.ToggleState then return end
                     if child:IsA("BodyVelocity") or child:IsA("BodyForce") or child:IsA("BodyAngularVelocity") or child:IsA("LinearVelocity") then
                         child:Destroy()
                     end
                 end))
 
                 if Animator then
-                    table.insert(activeConnections, Animator.AnimationPlayed:Connect(function(animationTrack)
-                        if not ToggleState then return end
+                    table.insert(AntiData.activeConnections, Animator.AnimationPlayed:Connect(function(animationTrack)
+                        if not AntiData.ToggleState then return end
                         local currentAnimName = tostring(animationTrack.Animation.Name):lower()
                         
                         if not (currentAnimName:find("walk") or currentAnimName:find("run") or currentAnimName:find("jump") or currentAnimName:find("climb") or currentAnimName:find("swim") or currentAnimName:find("fall") and not currentAnimName:find("slip") and not currentAnimName:find("banana")) then
@@ -5530,8 +5561,8 @@ AntiTab:AddToggle({
                     end))
                 end
 
-                table.insert(activeConnections, Humanoid.StateChanged:Connect(function(_, newState)
-                    if not ToggleState then return end
+                table.insert(AntiData.activeConnections, Humanoid.StateChanged:Connect(function(_, newState)
+                    if not AntiData.ToggleState then return end
                     if newState == Enum.HumanoidStateType.FallingDown or newState == Enum.HumanoidStateType.Ragdoll or newState == Enum.HumanoidStateType.PlatformStanding then
                         Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
                         Humanoid.WalkSpeed = originalWalkSpeed
@@ -5540,9 +5571,9 @@ AntiTab:AddToggle({
 
                 local function CheckForBananaPeel()
                     for _, part in ipairs(workspace:GetDescendants()) do
-                        if ToggleState and part:IsA("Part") and (part.Name:lower():find("banana") or part.Name:lower():find("peel")) then
-                            table.insert(activeConnections, part.Touched:Connect(function(hit)
-                                if not ToggleState then return end
+                        if AntiData.ToggleState and part:IsA("Part") and (part.Name:lower():find("banana") or part.Name:lower():find("peel")) then
+                            table.insert(AntiData.activeConnections, part.Touched:Connect(function(hit)
+                                if not AntiData.ToggleState then return end
                                 if hit.Parent == Character then
                                     Humanoid.WalkSpeed = originalWalkSpeed
                                     for _, child in ipairs(Character:GetChildren()) do
@@ -5557,19 +5588,19 @@ AntiTab:AddToggle({
                 end
 
                 CheckForBananaPeel()
-                table.insert(activeConnections, workspace.ChildAdded:Connect(function()
-                    if ToggleState then
+                table.insert(AntiData.activeConnections, workspace.ChildAdded:Connect(function()
+                    if AntiData.ToggleState then
                         CheckForBananaPeel()
                     end
                 end))
             end
 
-            local Character = Player.Character or Player.CharacterAdded:Wait()
+            local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
             SetupAntiBanana(Character)
 
-            table.insert(activeConnections, Player.CharacterAdded:Connect(function(NewCharacter)
-                if ToggleState then
-                    wait(0.1)
+            table.insert(AntiData.activeConnections, LocalPlayer.CharacterAdded:Connect(function(NewCharacter)
+                if AntiData.ToggleState then
+                    task.wait(0.1)
                     SetupAntiBanana(NewCharacter)
                 end
             end))
@@ -5584,20 +5615,17 @@ AntiTab:AddToggle({
     Description = "",
     Default = false,
     Callback = function(Value)
-        getgenv().ED_AntiKick = getgenv().ED_AntiKick or {}
-        getgenv().ED_AntiKick.Enabled = Value
+        AntiData.AntiKickData.Enabled = Value
 
         if Value then
-            local getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller, lower, gsub = getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller, string.lower, string.gsub
-
-            if getgenv().ED_AntiKick.__loaded then return end
-            getgenv().ED_AntiKick.__loaded = true
+            if AntiData.AntiKickData.__loaded then return end
+            AntiData.AntiKickData.__loaded = true
 
             local cloneref = cloneref or function(...) return ... end
             local clonefunction = clonefunction or function(...) return ... end
 
-            local Players = cloneref(game:GetService("Players"))
-            local LocalPlayer = cloneref(Players.LocalPlayer)
+            local Players2 = cloneref(game:GetService("Players"))
+            local LocalPlayer2 = cloneref(Players2.LocalPlayer)
             local StarterGui = cloneref(game:GetService("StarterGui"))
             local SetCore = clonefunction(StarterGui.SetCore)
             local FindFirstChild = clonefunction(game.FindFirstChild)
@@ -5610,49 +5638,43 @@ AntiTab:AddToggle({
                 return pcall(FindFirstChild, game, ...)
             end
 
-            getgenv().ED_AntiKick.SendNotifications = true
-            getgenv().ED_AntiKick.CheckCaller = true
-
-            local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
+            local OldNamecall = hookmetamethod(game, "__namecall", function(...)
                 local self, msg = ...
                 local method = getnamecallmethod()
 
-                if ((getgenv().ED_AntiKick.CheckCaller and not checkcaller()) or true)
-                    and CompareInstances(self, LocalPlayer)
-                    and gsub(method, "^%l", string.upper) == "Kick"
-                    and getgenv().ED_AntiKick.Enabled then
-                    
-                    if CanCastToSTDString(msg) and getgenv().ED_AntiKick.SendNotifications then
-                        SetCore(StarterGui, "SendNotification", {
-                            Title = "Nova Hub",
-                            Text = "انت محمي من الطرد",
-                            Icon = "rbxassetid://132309954224617",
-                            Duration = 2
-                        })
+                if CompareInstances(self, LocalPlayer2) and string.gsub(method, "^%l", string.upper) == "Kick" and AntiData.AntiKickData.Enabled then
+                    if CanCastToSTDString(msg) and AntiData.AntiKickData.SendNotifications then
+                        pcall(function()
+                            SetCore(StarterGui, "SendNotification", {
+                                Title = "Nova Hub",
+                                Text = "انت محمي من الطرد",
+                                Icon = "rbxassetid://132309954224617",
+                                Duration = 2
+                            })
+                        end)
                     end
                     return
                 end
 
                 return OldNamecall(...)
-            end))
+            end)
 
-            local OldKick; OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
+            local OldKick = hookfunction(LocalPlayer2.Kick, function(...)
                 local self, msg = ...
-                if ((getgenv().ED_AntiKick.CheckCaller and not checkcaller()) or true)
-                    and CompareInstances(self, LocalPlayer)
-                    and getgenv().ED_AntiKick.Enabled then
-
-                    if CanCastToSTDString(msg) and getgenv().ED_AntiKick.SendNotifications then
-                        SetCore(StarterGui, "SendNotification", {
-                            Title = "Nova Hub",
-                            Text = "طرد تم منعه",
-                            Icon = "rbxassetid://132309954224617",
-                            Duration = 2
-                        })
+                if CompareInstances(self, LocalPlayer2) and AntiData.AntiKickData.Enabled then
+                    if CanCastToSTDString(msg) and AntiData.AntiKickData.SendNotifications then
+                        pcall(function()
+                            SetCore(StarterGui, "SendNotification", {
+                                Title = "Nova Hub",
+                                Text = "طرد تم منعه",
+                                Icon = "rbxassetid://132309954224617",
+                                Duration = 2
+                            })
+                        end)
                     end
                     return
                 end
-            end))
+            end)
 
             pcall(function()
                 StarterGui:SetCore("SendNotification", {
@@ -5664,7 +5686,7 @@ AntiTab:AddToggle({
             end)
         else
             pcall(function()
-                StarterGui:SetCore("SendNotification", {
+                game:GetService("StarterGui"):SetCore("SendNotification", {
                     Title = "Nova Hub",
                     Text = "مضاد طرد معطل",
                     Icon = "rbxassetid://132309954224617",
@@ -5675,99 +5697,92 @@ AntiTab:AddToggle({
     end
 })
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
-local character = nil
-local humanoid = nil
-local root = nil
-
-local invisible = false
-local savedParts = {}
-
 local function cacheParts()
-	savedParts = {}
-	for _,v in ipairs(character:GetDescendants()) do
-		if v:IsA("BasePart") and v.Transparency < 1 then
-			table.insert(savedParts, v)
-		end
-	end
+    AntiData.savedParts = {}
+    local char = LocalPlayer.Character
+    if not char then return end
+    for _,v in ipairs(char:GetDescendants()) do
+        if v:IsA("BasePart") and v.Transparency < 1 then
+            table.insert(AntiData.savedParts, v)
+        end
+    end
 end
 
 local function setInvisible(state)
-	invisible = state
-	for _,p in ipairs(savedParts) do
-		if invisible then
-			p.Transparency = 0.5
-		else
-			p.Transparency = 0
-		end
-	end
+    AntiData.invisible = state
+    for _,p in ipairs(AntiData.savedParts) do
+        if AntiData.invisible then
+            p.Transparency = 0.5
+        else
+            p.Transparency = 0
+        end
+    end
 end
 
 local function onCharacter(char)
-	character = char
-	humanoid = char:WaitForChild("Humanoid")
-	root = char:WaitForChild("HumanoidRootPart")
-	cacheParts()
-	setInvisible(false)
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    cacheParts()
+    setInvisible(false)
 end
 
-player.CharacterAdded:Connect(onCharacter)
-if player.Character then
-	onCharacter(player.Character)
+LocalPlayer.CharacterAdded:Connect(onCharacter)
+if LocalPlayer.Character then
+    onCharacter(LocalPlayer.Character)
 end
 
 RunService.Heartbeat:Connect(function()
-	if invisible and root and humanoid then
-		local oldCF = root.CFrame
-		local oldOffset = humanoid.CameraOffset
-		local newCF = oldCF * CFrame.new(0, -200000, 0)
-		local rel = newCF:ToObjectSpace(CFrame.new(oldCF.Position)).Position
-		root.CFrame = newCF
-		humanoid.CameraOffset = rel
-		RunService.RenderStepped:Wait()
-		root.CFrame = oldCF
-		humanoid.CameraOffset = oldOffset
-	end
+    if AntiData.invisible then
+        local char = LocalPlayer.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if root and humanoid then
+            local oldCF = root.CFrame
+            local oldOffset = humanoid.CameraOffset
+            local newCF = oldCF * CFrame.new(0, -200000, 0)
+            local rel = newCF:ToObjectSpace(CFrame.new(oldCF.Position)).Position
+            root.CFrame = newCF
+            humanoid.CameraOffset = rel
+            RunService.RenderStepped:Wait()
+            root.CFrame = oldCF
+            humanoid.CameraOffset = oldOffset
+        end
+    end
 end)
 
 AntiTab:AddToggle({
-	Name = "مضاد فلنق",
-	Default = false,
-	Callback = function(v)
-		setInvisible(v)
-	end
+    Name = "مضاد فلنق",
+    Default = false,
+    Callback = function(v)
+        setInvisible(v)
+    end
 })
-
-local lastSafePos = Vector3.new(-26.09, 2.79, 6.11)
-local avoidConn
 
 AntiTab:AddToggle({
     Name = "مضاد فويد",
     Description = "",
     Default = false,
     Callback = function(Value)
-        if avoidConn then
-            avoidConn:Disconnect()
-            avoidConn = nil
+        if AntiData.avoidConn then
+            AntiData.avoidConn:Disconnect()
+            AntiData.avoidConn = nil
         end
 
         if Value then
-            avoidConn = RunService.Stepped:Connect(function()
-                local char = player.Character
+            AntiData.avoidConn = RunService.Stepped:Connect(function()
+                local char = LocalPlayer.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
 
                 local pos = hrp.Position
 
                 if pos.Y > -20 and pos.Y < 1000 and math.abs(pos.X) < 2000 and math.abs(pos.Z) < 2000 then
-                    lastSafePos = pos
+                    AntiData.lastSafePos = pos
                 end
 
                 if pos.Y < -50 or pos.Y > 1500 or math.abs(pos.X) > 3000 or math.abs(pos.Z) > 3000 then
-                    hrp.CFrame = CFrame.new(lastSafePos)
+                    hrp.CFrame = CFrame.new(AntiData.lastSafePos)
 
                     pcall(function()
                         game.StarterGui:SetCore("SendNotification", {
@@ -5782,8 +5797,6 @@ AntiTab:AddToggle({
     end
 })
 
-local Workspace = game:GetService("Workspace")
-
 local backupTables = {
     Vehicles = {},
     Canoes = {},
@@ -5792,32 +5805,27 @@ local backupTables = {
     Balls = {}
 }
 
-local TeleportCarro = {}
-function TeleportCarro:MostrarNotificacao(msg)
-    print("Nova Hub "..msg)
-end
-
 local function AntiFlingLoop(name, getFolderFunc)
     local active = false
     task.spawn(function()
         while true do
-            if active and player.Character then
+            if active and LocalPlayer.Character then
                 local folder = getFolderFunc()
                 if folder then
                     for _, item in ipairs(folder:GetChildren()) do
                         local isMine = false
                         if name == "Vehicles" then
                             for _, seat in ipairs(item:GetDescendants()) do
-                                if (seat:IsA("VehicleSeat") or seat:IsA("Seat")) and seat.Occupant and seat.Occupant.Parent == player.Character then
+                                if (seat:IsA("VehicleSeat") or seat:IsA("Seat")) and seat.Occupant and seat.Occupant.Parent == LocalPlayer.Character then
                                     isMine = true
                                     break
                                 end
                             end
                         elseif name == "Canoes" then
                             local owner = item:FindFirstChild("Owner")
-                            isMine = owner and owner.Value == player
+                            isMine = owner and owner.Value == LocalPlayer
                         elseif name == "Jets" or name == "Helis" then
-                            isMine = item.Name == player.Name
+                            isMine = item.Name == LocalPlayer.Name
                         end
                         if not isMine then
                             table.insert(backupTables[name], item:Clone())
@@ -5831,7 +5839,7 @@ local function AntiFlingLoop(name, getFolderFunc)
     end)
     return function(state)
         active = state
-        TeleportCarro:MostrarNotificacao(name.." "..(state and "ativado!" or "desativado!"))
+        TeleportCarroNotificacao(name.." "..(state and "ativado!" or "desativado!"))
         if not state then
             for _, item in ipairs(backupTables[name]) do
                 local parentFolder = getFolderFunc()
@@ -5894,16 +5902,12 @@ AntiTab:AddToggle({
     end)
 })
 
-local TweenService = game:GetService("TweenService")
-local enabledBaby = false
-local lastCF = nil
-
 local function voidBack()
-    local char = player.Character
+    local char = LocalPlayer.Character
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-    lastCF = hrp.CFrame
+    local lastCF = hrp.CFrame
     hrp.CFrame = hrp.CFrame * CFrame.new(0, -200, 0)
     task.wait(2)
     if hrp and lastCF then
@@ -5916,14 +5920,14 @@ local function voidBack()
 end
 
 RunService.Heartbeat:Connect(function()
-    if not enabledBaby then return end
-    local char = player.Character
+    if not AntiData.enabledBaby then return end
+    local char = LocalPlayer.Character
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player and workspace:FindFirstChild(p.Name) then
+        if p ~= LocalPlayer and workspace:FindFirstChild(p.Name) then
             local follow = workspace[p.Name]:FindFirstChild("FollowCharacter")
             if follow and follow:FindFirstChild("Torso") then
                 local torso = follow.Torso
@@ -5941,21 +5945,20 @@ AntiTab:AddToggle({
     Name = "مضاد طفل",
     Default = false,
     Callback = function(v)
-        enabledBaby = v
+        AntiData.enabledBaby = v
     end
 })
 
-local antiSitActive = false
 AntiTab:AddToggle({
     Name = "مضاد الجلوس / كنبة / باص",
     Description = "",
     Default = false,
     Callback = function(state)
-        antiSitActive = state
-        TeleportCarro:MostrarNotificacao("Anti Sit "..(state and "ativado!" or "desativado!"))
+        AntiData.antiSitActive = state
+        TeleportCarroNotificacao("Anti Sit "..(state and "ativado!" or "desativado!"))
         task.spawn(function()
-            while antiSitActive and player.Character do
-                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            while AntiData.antiSitActive and LocalPlayer.Character do
+                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
                 if humanoid then
                     humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
                     if humanoid:GetState() == Enum.HumanoidStateType.Seated then
@@ -5964,8 +5967,8 @@ AntiTab:AddToggle({
                 end
                 task.wait(0.05)
             end
-            if not antiSitActive then
-                local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+            if not AntiData.antiSitActive then
+                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
                 if humanoid then
                     humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
                 end
@@ -5974,10 +5977,7 @@ AntiTab:AddToggle({
     end
 })
 
-local RS = game:GetService("ReplicatedStorage")
-local Remotes = RS:WaitForChild("Remotes")
 local resetRemote = Remotes:WaitForChild("ResetCharacterAppearance")
-local enabledCopy = false
 
 local function getAccSet(desc)
     local t = {}
@@ -5996,19 +5996,19 @@ local function countMatch(a, b)
 end
 
 local function tweenTo(plr)
-    if not (plr.Character and player.Character) then return end
-    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+    if not (plr.Character and LocalPlayer.Character) then return end
+    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     local thrp = plr.Character:FindFirstChild("HumanoidRootPart")
     if not (hrp and thrp) then return end
     TweenService:Create(hrp, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {CFrame = thrp.CFrame}):Play()
 end
 
 local function watch(plr)
-    if plr == player then return end
+    if plr == LocalPlayer then return end
     task.spawn(function()
-        while enabledCopy and plr.Parent do
-            if plr.Character and player.Character then
-                local lhum = player.Character:FindFirstChildOfClass("Humanoid")
+        while AntiData.enabledCopy and plr.Parent do
+            if plr.Character and LocalPlayer.Character then
+                local lhum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
                 local thum = plr.Character:FindFirstChildOfClass("Humanoid")
                 if lhum and thum then
                     local lset = getAccSet(lhum:GetAppliedDescription())
@@ -6030,7 +6030,7 @@ AntiTab:AddToggle({
     Name = "مضاد سرقة السكن",
     Default = false,
     Callback = function(v)
-        enabledCopy = v
+        AntiData.enabledCopy = v
         if v then
             for _, p in ipairs(Players:GetPlayers()) do watch(p) end
             Players.PlayerAdded:Connect(watch)
@@ -6038,9 +6038,7 @@ AntiTab:AddToggle({
     end
 })
 
-local conexaoAutoRemocao
 local alvo = "1Gu1nSound1s"
-local objetosRestaurados = {} 
 
 local function removerAlvo()
     for _, obj in ipairs(game:GetDescendants()) do
@@ -6048,7 +6046,7 @@ local function removerAlvo()
             pcall(function()
                 local clone = obj:Clone()
                 local parentOriginal = obj.Parent
-                table.insert(objetosRestaurados, {Clone = clone, Parent = parentOriginal})
+                table.insert(AntiData.objetosRestaurados, {Clone = clone, Parent = parentOriginal})
                 obj:Destroy()
             end)
         end
@@ -6056,12 +6054,12 @@ local function removerAlvo()
 end
 
 local function restaurarAlvo()
-    for _, dados in ipairs(objetosRestaurados) do
+    for _, dados in ipairs(AntiData.objetosRestaurados) do
         pcall(function()
             dados.Clone.Parent = dados.Parent
         end)
     end
-    objetosRestaurados = {}
+    AntiData.objetosRestaurados = {}
 end
 
 AntiTab:AddToggle({
@@ -6071,21 +6069,21 @@ AntiTab:AddToggle({
     Callback = function(v)
         if v then
             removerAlvo()
-            conexaoAutoRemocao = game.DescendantAdded:Connect(function(obj)
+            AntiData.conexaoAutoRemocao = game.DescendantAdded:Connect(function(obj)
                 if obj.Name == alvo then
                     task.wait(0.1)
                     pcall(function()
                         local clone = obj:Clone()
                         local parentOriginal = obj.Parent
-                        table.insert(objetosRestaurados, {Clone = clone, Parent = parentOriginal})
+                        table.insert(AntiData.objetosRestaurados, {Clone = clone, Parent = parentOriginal})
                         obj:Destroy()
                     end)
                 end
             end)
         else
-            if conexaoAutoRemocao then
-                conexaoAutoRemocao:Disconnect()
-                conexaoAutoRemocao = nil
+            if AntiData.conexaoAutoRemocao then
+                AntiData.conexaoAutoRemocao:Disconnect()
+                AntiData.conexaoAutoRemocao = nil
             end
             restaurarAlvo()
         end
@@ -6097,10 +6095,6 @@ AntiTab:AddToggle({
     Description = "",
     Default = false,
     Callback = function(state)
-        if not _G.playerDoorData then 
-            _G.playerDoorData = {}
-        end
-        
         local function findPlayerDoor()
             local lotsFolder = workspace:FindFirstChild("001_Lots")
             if not lotsFolder then 
@@ -6131,7 +6125,7 @@ AntiTab:AddToggle({
         if state then
             local door, parent = findPlayerDoor()
             if door then
-                _G.playerDoorData = {
+                AntiData.PlayerDoorData = {
                     door = door,
                     parent = parent,
                     name = door.Name
@@ -6139,9 +6133,9 @@ AntiTab:AddToggle({
                 door.Parent = nil
             end
         else
-            if _G.playerDoorData and _G.playerDoorData.door and _G.playerDoorData.parent then
-                _G.playerDoorData.door.Parent = _G.playerDoorData.parent
-                _G.playerDoorData = {}
+            if AntiData.PlayerDoorData and AntiData.PlayerDoorData.door and AntiData.PlayerDoorData.parent then
+                AntiData.PlayerDoorData.door.Parent = AntiData.PlayerDoorData.parent
+                AntiData.PlayerDoorData = {}
             end
         end
     end
@@ -6152,9 +6146,8 @@ AntiTab:AddToggle({
     Description = "",
     Default = false,
     Callback = function(state)
-        if not _G.hiddenDoors then _G.hiddenDoors = {} end
         if state then
-            _G.hiddenDoors = {}
+            AntiData.HiddenDoors = {}
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("BasePart") and obj.Name:lower():find("door") then
                     local doorData = {
@@ -6174,12 +6167,12 @@ AntiTab:AddToggle({
                             child.Enabled = false
                         end
                     end
-                    table.insert(_G.hiddenDoors, doorData)
+                    table.insert(AntiData.HiddenDoors, doorData)
                 end
             end
-            print("Nova Hub " .. #_G.hiddenDoors .. " Nova Hub ")
+            print("Nova Hub " .. #AntiData.HiddenDoors .. " باب تم اخفائه")
         else
-            for _, doorData in ipairs(_G.hiddenDoors or {}) do
+            for _, doorData in ipairs(AntiData.HiddenDoors) do
                 if doorData.door and doorData.door.Parent then
                     doorData.door.Transparency = doorData.originalTransparency
                     doorData.door.CanCollide = doorData.originalCanCollide
@@ -6194,8 +6187,8 @@ AntiTab:AddToggle({
                     end
                 end
             end
-            print("Nova Hub " .. #(_G.hiddenDoors or {}) .. " Nova Hub ")
-            _G.hiddenDoors = {}
+            print("Nova Hub " .. #AntiData.HiddenDoors .. " باب تم استعادته")
+            AntiData.HiddenDoors = {}
         end
     end
 })
@@ -6282,32 +6275,19 @@ AntiTab:AddToggle({
     end
 })
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-
-local AntiSkyboxEnabled = false
-
-local HiddenPlayers = {}
-local OriginalData = {}
-local SpamLog = {}
-
-local SpamThreshold = 5
-local TimeWindow = 1
-local HideDuration = 8
-
 local function DetectSpam(userId, attackType)
     local now = tick()
+    local SpamThreshold = 5
+    local TimeWindow = 1
     
-    if not SpamLog[userId] then
-        SpamLog[userId] = {}
+    if not AntiData.SpamLog[userId] then
+        AntiData.SpamLog[userId] = {}
     end
-    if not SpamLog[userId][attackType] then
-        SpamLog[userId][attackType] = {}
+    if not AntiData.SpamLog[userId][attackType] then
+        AntiData.SpamLog[userId][attackType] = {}
     end
     
-    local log = SpamLog[userId][attackType]
+    local log = AntiData.SpamLog[userId][attackType]
     table.insert(log, now)
     
     for i = #log, 1, -1 do
@@ -6321,19 +6301,21 @@ end
 
 local function HidePlayer(player)
     local userId = player.UserId
-    if HiddenPlayers[userId] then
-        HiddenPlayers[userId] = tick() + HideDuration
+    local HideDuration = 8
+    
+    if AntiData.HiddenPlayers[userId] then
+        AntiData.HiddenPlayers[userId] = tick() + HideDuration
         return
     end
     
     local char = player.Character
     if not char then return end
     
-    OriginalData[userId] = {}
+    AntiData.OriginalData[userId] = {}
     
     for _, part in ipairs(char:GetDescendants()) do
         if part:IsA("BasePart") then
-            OriginalData[userId][part] = part.Transparency
+            AntiData.OriginalData[userId][part] = part.Transparency
             part.Transparency = 1
         end
     end
@@ -6342,26 +6324,26 @@ local function HidePlayer(player)
     if head then
         local billboard = head:FindFirstChildOfClass("BillboardGui")
         if billboard then
-            OriginalData[userId]["Billboard"] = billboard.Enabled
+            AntiData.OriginalData[userId]["Billboard"] = billboard.Enabled
             billboard.Enabled = false
         end
     end
     
-    HiddenPlayers[userId] = tick() + HideDuration
+    AntiData.HiddenPlayers[userId] = tick() + HideDuration
 end
 
 local function ShowPlayer(player)
     local userId = player.UserId
-    HiddenPlayers[userId] = nil
+    AntiData.HiddenPlayers[userId] = nil
     
     local char = player.Character
     if not char then
-        OriginalData[userId] = nil
+        AntiData.OriginalData[userId] = nil
         return
     end
     
-    if OriginalData[userId] then
-        for obj, originalValue in pairs(OriginalData[userId]) do
+    if AntiData.OriginalData[userId] then
+        for obj, originalValue in pairs(AntiData.OriginalData[userId]) do
             if obj and obj.Parent then
                 if obj:IsA("BasePart") then
                     obj.Transparency = originalValue
@@ -6370,7 +6352,7 @@ local function ShowPlayer(player)
                 end
             end
         end
-        OriginalData[userId] = nil
+        AntiData.OriginalData[userId] = nil
     end
 end
 
@@ -6378,13 +6360,13 @@ AntiTab:AddToggle({
     Name = "مضاد SkyBox",
     Default = false,
     Callback = function(value)
-        AntiSkyboxEnabled = value
+        AntiData.AntiSkyboxEnabled = value
     end
 })
 
 local oldChangeBody = ReplicatedStorage.Remotes.ChangeCharacterBody.InvokeServer
 ReplicatedStorage.Remotes.ChangeCharacterBody.InvokeServer = function(self, ...)
-    if AntiSkyboxEnabled then
+    if AntiData.AntiSkyboxEnabled then
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 if DetectSpam(player.UserId, "BodyChange") then
@@ -6399,14 +6381,14 @@ end
 RunService.Heartbeat:Connect(function()
     local now = tick()
     
-    for userId, hideEndTime in pairs(HiddenPlayers) do
+    for userId, hideEndTime in pairs(AntiData.HiddenPlayers) do
         if now >= hideEndTime then
             local player = Players:GetPlayerByUserId(userId)
             if player then
                 ShowPlayer(player)
             else
-                HiddenPlayers[userId] = nil
-                OriginalData[userId] = nil
+                AntiData.HiddenPlayers[userId] = nil
+                AntiData.OriginalData[userId] = nil
             end
         end
     end
@@ -6414,7 +6396,7 @@ end)
 
 Players.PlayerRemoving:Connect(function(player)
     local userId = player.UserId
-    HiddenPlayers[userId] = nil
-    OriginalData[userId] = nil
-    SpamLog[userId] = nil
+    AntiData.HiddenPlayers[userId] = nil
+    AntiData.OriginalData[userId] = nil
+    AntiData.SpamLog[userId] = nil
 end)
