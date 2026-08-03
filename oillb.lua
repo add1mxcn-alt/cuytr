@@ -4097,95 +4097,6 @@ CarTab:AddButton({
     end
 })
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Player = Players.LocalPlayer
-
-local CarState = {
-    Active = false,
-    Speed = 0.05,
-    Connection = nil
-}
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Player = Players.LocalPlayer
-
-local CarState2 = {
-    Active = false,
-    Speed = 0.05,
-    Connection = nil
-}
-
-CarTab2:AddSlider({
-    Name = "سرعة تلوين السيارة",
-    Min = 1,
-    Max = 20,
-    Default = 10,
-    Callback = function(Value)
-        CarState2.Speed = Value / 200
-    end
-})
-
-CarTab2:AddToggle({
-    Name = "تفعيل تلوين السيارة",
-    Default = false,
-    Callback = function(Value)
-        CarState2.Active = Value
-        
-        if CarState2.Connection then
-            CarState2.Connection:Disconnect()
-            CarState2.Connection = nil
-        end
-        
-        if not Value then return end
-
-        CarState2.Connection = RunService.RenderStepped:Connect(function()
-            if not CarState2.Active then
-                CarState2.Connection:Disconnect()
-                CarState2.Connection = nil
-                return
-            end
-
-            local PlayerGui = Player:FindFirstChild("PlayerGui")
-            if not PlayerGui then return end
-            
-            local MainGUIHandler = PlayerGui:FindFirstChild("MainGUIHandler")
-            if not MainGUIHandler then return end
-            
-            local CarControl = MainGUIHandler:FindFirstChild("CarControl")
-            if not CarControl then return end
-            
-            local ColorPicks = CarControl:FindFirstChild("ColorPicks")
-            if not ColorPicks then return end
-            
-            local SetColor = ColorPicks:FindFirstChild("SetColor")
-            if not SetColor then return end
-
-            local Color = Color3.fromHSV(math.random(), 1, 1)
-            pcall(function()
-                SetColor:FireServer(Color)
-            end)
-            
-            task.wait(CarState2.Speed)
-        end)
-    end
-})
-
-CarTab:AddToggle({
-    Name = "تكرار الأضواء الأمامية",
-    Default = false,
-    Callback = function(value)
-        spammingHeadLights = value
-        if spammingHeadLights then
-            spawn(spamHeadLights)
-        else
-            wait(0.2)
-            ReplicatedStorage.Remotes.ToggleHeadLights:InvokeServer()
-        end
-    end
-})
-
 CarTab:AddToggle({
     Name = "تكرار أضواء الخطر",
     Default = false,
@@ -4371,35 +4282,6 @@ HouseTab:AddTextBox({
             value
         }
         game:GetService("ReplicatedStorage").RE:FindFirstChild("1RPHous1eEven1t"):FireServer(unpack(args))
-    end
-})
-
-local rainbowHouseActive = false
-HouseTab:AddToggle({
-    Name = "ألوان متحركة للبيت (RGB)",
-    Default = false,
-    Callback = function(state)
-        rainbowHouseActive = state
-        if state then
-            task.spawn(function()
-                local time = 0
-                while rainbowHouseActive do
-                    local color = Color3.fromHSV((time % 1), 1, 1)
-                    local args = {
-                        "ColorPickHouse",
-                        color
-                    }
-                    local event = game:GetService("ReplicatedStorage"):FindFirstChild("RE") and game:GetService("ReplicatedStorage").RE:FindFirstChild("1Player1sHous1e")
-                    if event then
-                        pcall(function()
-                            event:FireServer(unpack(args))
-                        end)
-                    end
-                    task.wait(0.1)
-                    time = time + 0.02
-                end
-            end)
-        end
     end
 })
 
