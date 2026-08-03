@@ -4098,6 +4098,20 @@ CarTab:AddButton({
 })
 
 CarTab:AddToggle({
+    Name = "تكرار الأضواء الأمامية",
+    Default = false,
+    Callback = function(value)
+        spammingHeadLights = value
+        if spammingHeadLights then
+            spawn(spamHeadLights)
+        else
+            wait(0.2)
+            ReplicatedStorage.Remotes.ToggleHeadLights:InvokeServer()
+        end
+    end
+})
+
+CarTab:AddToggle({
     Name = "تكرار أضواء الخطر",
     Default = false,
     Callback = function(value)
@@ -4282,6 +4296,35 @@ HouseTab:AddTextBox({
             value
         }
         game:GetService("ReplicatedStorage").RE:FindFirstChild("1RPHous1eEven1t"):FireServer(unpack(args))
+    end
+})
+
+local rainbowHouseActive = false
+HouseTab:AddToggle({
+    Name = "ألوان متحركة للبيت (RGB)",
+    Default = false,
+    Callback = function(state)
+        rainbowHouseActive = state
+        if state then
+            task.spawn(function()
+                local time = 0
+                while rainbowHouseActive do
+                    local color = Color3.fromHSV((time % 1), 1, 1)
+                    local args = {
+                        "ColorPickHouse",
+                        color
+                    }
+                    local event = game:GetService("ReplicatedStorage"):FindFirstChild("RE") and game:GetService("ReplicatedStorage").RE:FindFirstChild("1Player1sHous1e")
+                    if event then
+                        pcall(function()
+                            event:FireServer(unpack(args))
+                        end)
+                    end
+                    task.wait(0.1)
+                    time = time + 0.02
+                end
+            end)
+        end
     end
 })
 
@@ -5228,11 +5271,9 @@ SongTab:AddToggle({
 
 local function SetupRGBTab(Window)
     local RgbTab = Window:MakeTab({ 
-        Title = "تلوين", 
+        Title = "آر جي بي", 
         Icon = "rbxassetid://10734910187" 
     })
-
-    RgbTab:AddSection({ "الشعر" })
 
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -5257,12 +5298,6 @@ local function SetupRGBTab(Window)
         Connection = nil
     }
 
-    local HouseState = {
-        Active = false,
-        Speed = 0.05,
-        Connection = nil
-    }
-
     local BodyColors = {
         "Pastel light blue", "Pastel pink", "Pastel yellow", "Pastel green",
         "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Pink",
@@ -5278,6 +5313,8 @@ local function SetupRGBTab(Window)
         Color3.new(1, 1, 1), Color3.new(0, 1, 1), Color3.new(0.5, 1, 0.5)
     }
 
+    RgbTab:AddSection({ "الشعر" })
+
     RgbTab:AddSlider({
         Name = "سرعة التلوين",
         Min = 1,
@@ -5289,7 +5326,7 @@ local function SetupRGBTab(Window)
     })
 
     RgbTab:AddToggle({
-        Name = "تفعيل تلوين الشعر",
+        Name = "تفعيل آر جي بي للشعر",
         Default = false,
         Callback = function(Value)
             HairState.Active = Value
@@ -5337,7 +5374,7 @@ local function SetupRGBTab(Window)
     })
 
     RgbTab:AddToggle({
-        Name = "تفعيل تلوين الجسم",
+        Name = "تفعيل آر جي بي للجسم",
         Default = false,
         Callback = function(Value)
             BodyState.Active = Value
@@ -5385,7 +5422,7 @@ local function SetupRGBTab(Window)
     })
 
     RgbTab:AddToggle({
-        Name = "تفعيل تلوين السيارة",
+        Name = "تفعيل آر جي بي للسيارة",
         Default = false,
         Callback = function(Value)
             VehicleState.Active = Value
@@ -5428,63 +5465,6 @@ local function SetupRGBTab(Window)
             end)
         end
     })
-
-RgbTab:AddSection({ "البيت" })
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Player = Players.LocalPlayer
-
-local HouseState2 = {
-    Active = false,
-    Speed = 0.05,
-    Connection = nil
-}
-
-rgbTab:AddSlider({
-    Name = "سرعة تلوين البيت",
-    Min = 1,
-    Max = 20,
-    Default = 10,
-    Callback = function(Value)
-        HouseState2.Speed = Value / 200
-    end
-})
-
-rgbTab:AddToggle({
-    Name = "تفعيل تلوين البيت",
-    Default = false,
-    Callback = function(Value)
-        HouseState2.Active = Value
-        
-        if HouseState2.Connection then
-            HouseState2.Connection:Disconnect()
-            HouseState2.Connection = nil
-        end
-        
-        if not Value then return end
-
-        HouseState2.Connection = RunService.RenderStepped:Connect(function()
-            if not HouseState2.Active then
-                HouseState2.Connection:Disconnect()
-                HouseState2.Connection = nil
-                return
-            end
-
-            local RE = ReplicatedStorage:FindFirstChild("RE")
-            if not RE then return end
-            
-            local Event = RE:FindFirstChild("1Player1sHous1e")
-            if not Event then return end
-
-            local Color = Color3.fromHSV(tick() % 1, 1, 1)
-            pcall(function()
-                Event:FireServer("ColorPickHouse", Color)
-            end)
-            
-            task.wait(HouseState2.Speed)
-        end)
-    end
-})
+end
 
 SetupRGBTab(Window)
