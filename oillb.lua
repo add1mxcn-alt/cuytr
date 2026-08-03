@@ -5468,3 +5468,8 @@ local function SetupRGBTab(Window)
 end
 
 SetupRGBTab(Window)
+
+local AntiTab = Window:MakeTab({
+    Title = "المضادات",
+    Icon = "rbxassetid://10734950020"
+})
