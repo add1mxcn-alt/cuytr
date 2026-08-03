@@ -5268,3 +5268,330 @@ SongTab:AddToggle({
         end
     end
 })
+
+-- اجعل كل شيء داخل نطاق محلي
+local function SetupRGBTab(Window)
+    local RgbTab = Window:MakeTab({ 
+        Title = "آر جي بي", 
+        Icon = "rbxassetid://10734910187" 
+    })
+
+    RgbTab:AddSection({ "الأدوات" })
+
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+    local Player = Players.LocalPlayer
+
+    -- استخدام متغيرات محلية فقط
+    local ToolState = {
+        Running = false,
+        ToolName = "BabyRattle",
+        ToolSpeed = 0.3,
+        Connection = nil
+    }
+
+    local HairState = {
+        Active = false,
+        Speed = 0.1,
+        Running = false
+    }
+
+    local BodyState = {
+        Active = false,
+        Speed = 0.3
+    }
+
+    local BicycleState = {
+        Active = false,
+        Speed = 3
+    }
+
+    local Tools = {
+        ["دهان || PaintRoller"] = "PaintRoller",
+        ["أحمر شفاه || Lipstick"] = "Lipstick",
+        ["قوس || Bow"] = "Bow",
+        ["راديو || Boombox"] = "Boombox",
+        ["ترمس || Thermos"] = "Thermos",
+        ["دونات || Donut"] = "Donut",
+        ["فرشاة خيل || HorseBrush"] = "HorseBrush",
+        ["هراوات || GlowingBatons"] = "GlowingBatons",
+        ["مكبر صوت || Megaphone"] = "Megaphone",
+        ["شمعة || Candle"] = "Candle",
+        ["مشعل || GuardTorch"] = "GuardTorch",
+        ["لعبة أطفال || BabyRattle"] = "BabyRattle"
+    }
+
+    local function EquipTool(Name)
+        local Char = Player.Character or Player.CharacterAdded:Wait()
+        local Hum = Char:WaitForChild("Humanoid")
+        local Tool = Player.Backpack:FindFirstChild(Name)
+        if Tool then
+            Tool.Parent = Char
+            Hum:EquipTool(Tool)
+            return Tool
+        end
+        return nil
+    end
+
+    local function HSV(T)
+        return Color3.fromHSV(T % 1, 1, 1)
+    end
+
+    -- اختيار الأداة
+    RgbTab:AddDropdown({
+        Name = "اختيار الأداة",
+        Default = "لعبة أطفال || BabyRattle",
+        Options = {"دهان || PaintRoller", "أحمر شفاه || Lipstick", "قوس || Bow", 
+                  "راديو || Boombox", "ترمس || Thermos", "دونات || Donut", 
+                  "فرشاة خيل || HorseBrush", "هراوات || GlowingBatons", 
+                  "مكبر صوت || Megaphone", "شمعة || Candle", "مشعل || GuardTorch", 
+                  "لعبة أطفال || BabyRattle"},
+        Callback = function(Value)
+            ToolState.ToolName = Tools[Value] or "BabyRattle"
+        end
+    })
+
+    -- سرعة التلوين
+    RgbTab:AddSlider({
+        Name = "سرعة التلوين",
+        Min = 1,
+        Max = 10,
+        Default = 3,
+        Callback = function(Value)
+            ToolState.ToolSpeed = Value / 10
+        end
+    })
+
+    -- تفعيل RGB
+    RgbTab:AddToggle({
+        Name = "تفعيل آر جي بي للأدوات",
+        Default = false,
+        Callback = function(State)
+            -- إيقاف التشغيل القديم
+            if ToolState.Connection then
+                ToolState.Connection:Disconnect()
+                ToolState.Connection = nil
+            end
+            
+            ToolState.Running = State
+            if not State then return end
+
+            task.spawn(function()
+                -- التحقق من وجود الـ RE
+                local RE = ReplicatedStorage:FindFirstChild("RE")
+                if not RE then return end
+
+                -- محاولة مسح الأدوات (مع حماية من الأخطاء)
+                pcall(function()
+                    if RE:FindFirstChild("1Clea1rTool1s") then
+                        RE["1Clea1rTool1s"]:FireServer("ClearAllTools")
+                    end
+                end)
+                
+                task.wait(0.2)
+                
+                -- إعطاء الأداة
+                pcall(function()
+                    if RE:FindFirstChild("1Too1l") then
+                        RE["1Too1l"]:InvokeServer("PickingTools", ToolState.ToolName)
+                    end
+                end)
+                
+                task.wait(0.3)
+
+                -- تجهيز الأداة
+                local Tool = EquipTool(ToolState.ToolName)
+                if not Tool then 
+                    warn("لم يتم العثور على الأداة: " .. ToolState.ToolName)
+                    return 
+                end
+
+                -- البحث عن SetColor
+                local PlayerGui = Player:FindFirstChild("PlayerGui")
+                if not PlayerGui then return end
+                
+                local ToolGui = PlayerGui:FindFirstChild("ToolGui")
+                if not ToolGui then return end
+                
+                local ToolSettings = ToolGui:FindFirstChild("ToolSettings")
+                if not ToolSettings then return end
+                
+                local Settings = ToolSettings:FindFirstChild("Settings")
+                if not Settings then return end
+                
+                local PropsColor = Settings:FindFirstChild("PropsColor")
+                if not PropsColor then return end
+                
+                local SetColor = PropsColor:FindFirstChild("SetColor")
+                if not SetColor then 
+                    warn("لم يتم العثور على SetColor")
+                    return 
+                end
+
+                -- بدء التلوين
+                local Hue = 0
+                local Current = HSV(0)
+
+                ToolState.Connection = RunService.RenderStepped:Connect(function(Delta)
+                    if not ToolState.Running then
+                        ToolState.Connection:Disconnect()
+                        ToolState.Connection = nil
+                        return
+                    end
+                    Hue += Delta * ToolState.ToolSpeed
+                    local Target = HSV(Hue)
+                    Current = Current:Lerp(Target, Delta * 5)
+                    pcall(function()
+                        SetColor:FireServer(Current)
+                    end)
+                end)
+            end)
+        end
+    })
+
+    -- قسم الشعر
+    RgbTab:AddSection({ "الشعر" })
+
+    local HairColors = {
+        Color3.new(1, 1, 0), Color3.new(0, 0, 1), Color3.new(1, 0, 1), 
+        Color3.new(1, 1, 1), Color3.new(0, 1, 0), Color3.new(0.5, 0, 1), 
+        Color3.new(1, 0.647, 0), Color3.new(0, 1, 1)
+    }
+
+    RgbTab:AddSlider({
+        Name = "سرعة التلوين",
+        Min = 1,
+        Max = 10,
+        Default = 1,
+        Callback = function(Value)
+            HairState.Speed = Value / 10
+        end
+    })
+
+    local function ChangeHairColor()
+        local Index = 1
+        local RE = ReplicatedStorage:FindFirstChild("RE")
+        if not RE then return end
+        
+        local Event = RE:FindFirstChild("1Max1y")
+        if not Event then return end
+        
+        while HairState.Active do
+            if not HairState.Active then break end
+            pcall(function()
+                Event:FireServer("ChangeHairColor2", HairColors[Index])
+            end)
+            task.wait(HairState.Speed)
+            Index = Index % #HairColors + 1
+        end
+    end
+
+    RgbTab:AddToggle({
+        Name = "تفعيل آر جي بي للشعر",
+        Default = false,
+        Callback = function(Value)
+            HairState.Active = Value
+            if HairState.Active then
+                task.spawn(ChangeHairColor)
+            end
+        end
+    })
+
+    -- قسم الجسم
+    RgbTab:AddSection({ "الجسم" })
+
+    local BodyColors = {
+        "بني فاتح", "أصفر فاتح", "أزرق فاتح", "أخضر فاتح", "وردي فاتح",
+        "أحمر غامق", "برتقالي", "أزرق غامق", "بنفسجي غامق", "أخضر غامق",
+        "أصفر غامق", "أبيض", "أسود", "رمادي غامق", "رمادي", "رمادي فاتح",
+        "أحمر", "أخضر مصفر", "أزرق مخضر", "أرجواني", "وردي", "بني محمر",
+        "أخضر ترابي", "أحمر رملي", "أزرق رملي", "أخضر رملي", "أخضر داكن",
+        "أزرق بحري", "معجون أسنان", "سماوي", "وردي نيون", "قرمزي",
+        "أرجواني ملكي", "برتقالي نيون", "أخضر نيون", "وردي نيون", "أزرق نيون",
+        "ذهبي", "ذهبي لامع", "أصفر جديد", "برتقالي غامق", "أزرق عميق",
+        "كستنائي", "أحمر كستنائي"
+    }
+
+    RgbTab:AddSlider({
+        Name = "سرعة التلوين",
+        Min = 1,
+        Max = 10,
+        Default = 3,
+        Callback = function(Value)
+            BodyState.Speed = Value / 10
+        end
+    })
+
+    RgbTab:AddToggle({
+        Name = "تفعيل آر جي بي للجسم",
+        Default = false,
+        Callback = function(Value)
+            BodyState.Active = Value
+            if BodyState.Active then
+                task.spawn(function()
+                    local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
+                    if not Remotes then return end
+                    
+                    local ChangeBodyColor = Remotes:FindFirstChild("ChangeBodyColor")
+                    if not ChangeBodyColor then return end
+                    
+                    while BodyState.Active do
+                        for _, Color in ipairs(BodyColors) do
+                            if not BodyState.Active then break end
+                            pcall(function()
+                                ChangeBodyColor:FireServer(Color)
+                            end)
+                            task.wait(BodyState.Speed)
+                        end
+                    end
+                end)
+            end
+        end
+    })
+
+    -- قسم الدراجة
+    RgbTab:AddSection({ "الدراجة" })
+
+    RgbTab:AddSlider({
+        Name = "سرعة التلوين",
+        Min = 1,
+        Max = 10,
+        Default = 3,
+        Callback = function(Value)
+            BicycleState.Speed = Value
+        end
+    })
+
+    local function GetRainbowColor(SpeedMultiplier)
+        local H = (tick() * (SpeedMultiplier/10) % 5) / 5
+        return Color3.fromHSV(H, 1, 1)
+    end
+
+    RgbTab:AddToggle({
+        Name = "تفعيل آر جي بي للدراجة",
+        Default = false,
+        Callback = function(Value)
+            BicycleState.Active = Value
+            if BicycleState.Active then
+                task.spawn(function()
+                    local RE = ReplicatedStorage:FindFirstChild("RE")
+                    if not RE then return end
+                    
+                    local Event = RE:FindFirstChild("1Player1sCa1r")
+                    if not Event then return end
+                    
+                    while BicycleState.Active do
+                        pcall(function()
+                            Event:FireServer("NoMotorColor", GetRainbowColor(BicycleState.Speed))
+                        end)
+                        task.wait(0.1)
+                    end
+                end)
+            end
+        end
+    })
+end
+
+-- استدعاء الدالة مع نافذة المميزات الرئيسية
+SetupRGBTab(Window)
