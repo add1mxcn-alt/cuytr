@@ -6239,136 +6239,140 @@ AntiTab:AddToggle({
     end
 })
 
-local Players2 = game:GetService("Players")
-local RunService2 = game:GetService("RunService")
-local ReplicatedStorage2 = game:GetService("ReplicatedStorage")
-local LocalPlayer2 = Players2.LocalPlayer
+local function SetupAntiSkybox()
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local LocalPlayer = Players.LocalPlayer
+    
+    local AntiSkyboxEnabled = false
+    local HiddenPlayers = {}
+    local OriginalData = {}
+    local SpamLog = {}
+    local SpamThreshold = 5
+    local TimeWindow = 1
+    local HideDuration = 8
+    local isSetup = false
 
-local AntiSkyboxEnabled = false
-local HiddenPlayers2 = {}
-local OriginalData2 = {}
-local SpamLog2 = {}
-local SpamThreshold2 = 5
-local TimeWindow2 = 1
-local HideDuration2 = 8
-local isSetup2 = false
+    local function DetectSpam(userId, attackType)
+        local now = tick()
+        if not SpamLog[userId] then SpamLog[userId] = {} end
+        if not SpamLog[userId][attackType] then SpamLog[userId][attackType] = {} end
+        local log = SpamLog[userId][attackType]
+        table.insert(log, now)
+        for i = #log, 1, -1 do
+            if now - log[i] > TimeWindow then
+                table.remove(log, i)
+            end
+        end
+        return #log >= SpamThreshold
+    end
 
-local function DetectSpam2(userId, attackType)
-    local now = tick()
-    if not SpamLog2[userId] then SpamLog2[userId] = {} end
-    if not SpamLog2[userId][attackType] then SpamLog2[userId][attackType] = {} end
-    local log = SpamLog2[userId][attackType]
-    table.insert(log, now)
-    for i = #log, 1, -1 do
-        if now - log[i] > TimeWindow2 then
-            table.remove(log, i)
+    local function HidePlayer(player)
+        local userId = player.UserId
+        if HiddenPlayers[userId] then
+            HiddenPlayers[userId] = tick() + HideDuration
+            return
+        end
+        local char = player.Character
+        if not char then return end
+        OriginalData[userId] = {}
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                OriginalData[userId][part] = part.Transparency
+                part.Transparency = 1
+            end
+        end
+        local head = char:FindFirstChild("Head")
+        if head then
+            local billboard = head:FindFirstChildOfClass("BillboardGui")
+            if billboard then
+                OriginalData[userId]["Billboard"] = billboard.Enabled
+                billboard.Enabled = false
+            end
+        end
+        HiddenPlayers[userId] = tick() + HideDuration
+    end
+
+    local function ShowPlayer(player)
+        local userId = player.UserId
+        HiddenPlayers[userId] = nil
+        local char = player.Character
+        if not char then
+            OriginalData[userId] = nil
+            return
+        end
+        if OriginalData[userId] then
+            for obj, originalValue in pairs(OriginalData[userId]) do
+                if obj and obj.Parent then
+                    if obj:IsA("BasePart") then
+                        obj.Transparency = originalValue
+                    elseif type(originalValue) == "boolean" then
+                        obj.Enabled = originalValue
+                    end
+                end
+            end
+            OriginalData[userId] = nil
         end
     end
-    return #log >= SpamThreshold2
-end
 
-local function HidePlayer2(player)
-    local userId = player.UserId
-    if HiddenPlayers2[userId] then
-        HiddenPlayers2[userId] = tick() + HideDuration2
-        return
-    end
-    local char = player.Character
-    if not char then return end
-    OriginalData2[userId] = {}
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            OriginalData2[userId][part] = part.Transparency
-            part.Transparency = 1
+    local function Setup()
+        if isSetup then return end
+        local remote = ReplicatedStorage:FindFirstChild("Remotes")
+        if not remote then return end
+        local changeBody = remote:FindFirstChild("ChangeCharacterBody")
+        if not changeBody then return end
+        local originalInvoke = changeBody.InvokeServer
+        changeBody.InvokeServer = function(self, ...)
+            if AntiSkyboxEnabled then
+                local player = Players:GetPlayerByUserId(self.UserId or 0)
+                if player and player ~= LocalPlayer then
+                    if DetectSpam(player.UserId, "BodyChange") then
+                        HidePlayer(player)
+                    end
+                end
+            end
+            return originalInvoke(self, ...)
         end
+        isSetup = true
     end
-    local head = char:FindFirstChild("Head")
-    if head then
-        local billboard = head:FindFirstChildOfClass("BillboardGui")
-        if billboard then
-            OriginalData2[userId]["Billboard"] = billboard.Enabled
-            billboard.Enabled = false
-        end
-    end
-    HiddenPlayers2[userId] = tick() + HideDuration2
-end
 
-local function ShowPlayer2(player)
-    local userId = player.UserId
-    HiddenPlayers2[userId] = nil
-    local char = player.Character
-    if not char then
-        OriginalData2[userId] = nil
-        return
-    end
-    if OriginalData2[userId] then
-        for obj, originalValue in pairs(OriginalData2[userId]) do
-            if obj and obj.Parent then
-                if obj:IsA("BasePart") then
-                    obj.Transparency = originalValue
-                elseif type(originalValue) == "boolean" then
-                    obj.Enabled = originalValue
+    task.spawn(Setup)
+
+    Players.PlayerAdded:Connect(function(player)
+        isSetup = false
+        task.spawn(Setup)
+    end)
+
+    Players.PlayerRemoving:Connect(function(player)
+        local userId = player.UserId
+        HiddenPlayers[userId] = nil
+        OriginalData[userId] = nil
+        SpamLog[userId] = nil
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        local now = tick()
+        for userId, hideEndTime in pairs(HiddenPlayers) do
+            if now >= hideEndTime then
+                local player = Players:GetPlayerByUserId(userId)
+                if player then
+                    ShowPlayer(player)
+                else
+                    HiddenPlayers[userId] = nil
+                    OriginalData[userId] = nil
                 end
             end
         end
-        OriginalData2[userId] = nil
-    end
+    end)
+
+    AntiTab:AddToggle({
+        Name = "مضاد SkyBox",
+        Default = false,
+        Callback = function(value)
+            AntiSkyboxEnabled = value
+        end
+    })
 end
 
-local function SetupAntiSkybox2()
-    if isSetup2 then return end
-    local remote = ReplicatedStorage2:FindFirstChild("Remotes")
-    if not remote then return end
-    local changeBody = remote:FindFirstChild("ChangeCharacterBody")
-    if not changeBody then return end
-    local originalInvoke = changeBody.InvokeServer
-    changeBody.InvokeServer = function(self, ...)
-        if AntiSkyboxEnabled then
-            local player = Players2:GetPlayerByUserId(self.UserId or 0)
-            if player and player ~= LocalPlayer2 then
-                if DetectSpam2(player.UserId, "BodyChange") then
-                    HidePlayer2(player)
-                end
-            end
-        end
-        return originalInvoke(self, ...)
-    end
-    isSetup2 = true
-end
-
-task.spawn(SetupAntiSkybox2)
-
-Players2.PlayerAdded:Connect(function(player)
-    isSetup2 = false
-    task.spawn(SetupAntiSkybox2)
-end)
-
-Players2.PlayerRemoving:Connect(function(player)
-    local userId = player.UserId
-    HiddenPlayers2[userId] = nil
-    OriginalData2[userId] = nil
-    SpamLog2[userId] = nil
-end)
-
-RunService2.Heartbeat:Connect(function()
-    local now = tick()
-    for userId, hideEndTime in pairs(HiddenPlayers2) do
-        if now >= hideEndTime then
-            local player = Players2:GetPlayerByUserId(userId)
-            if player then
-                ShowPlayer2(player)
-            else
-                HiddenPlayers2[userId] = nil
-                OriginalData2[userId] = nil
-            end
-        end
-    end
-end)
-
-AntiTab:AddToggle({
-    Name = "مضاد SkyBox",
-    Default = false,
-    Callback = function(value)
-        AntiSkyboxEnabled = value
-    end
-})
+task.spawn(SetupAntiSkybox)
