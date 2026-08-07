@@ -5579,76 +5579,33 @@ AntiTab:AddToggle({
         getgenv().ED_AntiKick = getgenv().ED_AntiKick or {}
         getgenv().ED_AntiKick.Enabled = Value
         if Value then
-            local getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller, lower, gsub = getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller, string.lower, string.gsub
             if getgenv().ED_AntiKick.__loaded then return end
             getgenv().ED_AntiKick.__loaded = true
-            local cloneref = cloneref or function(...) return ... end
-            local clonefunction = clonefunction or function(...) return ... end
-            local Players = cloneref(game:GetService("Players"))
-            local LocalPlayer = cloneref(Players.LocalPlayer)
-            local StarterGui = cloneref(game:GetService("StarterGui"))
-            local SetCore = clonefunction(StarterGui.SetCore)
-            local FindFirstChild = clonefunction(game.FindFirstChild)
-            local CompareInstances = function(a, b)
-                return typeof(a) == "Instance" and typeof(b) == "Instance"
-            end
-            local CanCastToSTDString = function(...)
-                return pcall(FindFirstChild, game, ...)
-            end
-            getgenv().ED_AntiKick.SendNotifications = true
-            getgenv().ED_AntiKick.CheckCaller = true
-            local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
+            local OldNamecall
+            OldNamecall = hookmetamethod(game, "__namecall", function(...)
                 local self, msg = ...
                 local method = getnamecallmethod()
-                if ((getgenv().ED_AntiKick.CheckCaller and not checkcaller()) or true)
-                    and CompareInstances(self, LocalPlayer)
-                    and gsub(method, "^%l", string.upper) == "Kick"
-                    and getgenv().ED_AntiKick.Enabled then
-                    if CanCastToSTDString(msg) and getgenv().ED_AntiKick.SendNotifications then
-                        SetCore(StarterGui, "SendNotification", {
-                            Title = "Nova Hub",
-                            Text = "انت محمي من الطرد",
-                            Icon = "rbxassetid://132309954224617",
-                            Duration = 2
-                        })
-                    end
+                if self == game.Players.LocalPlayer and method == "Kick" and getgenv().ED_AntiKick.Enabled then
+                    game.StarterGui:SetCore("SendNotification", {
+                        Title = "Nova Hub",
+                        Text = "انت محمي من الطرد",
+                        Duration = 2
+                    })
                     return
                 end
                 return OldNamecall(...)
-            end))
-            local OldKick; OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
-                local self, msg = ...
-                if ((getgenv().ED_AntiKick.CheckCaller and not checkcaller()) or true)
-                    and CompareInstances(self, LocalPlayer)
-                    and getgenv().ED_AntiKick.Enabled then
-                    if CanCastToSTDString(msg) and getgenv().ED_AntiKick.SendNotifications then
-                        SetCore(StarterGui, "SendNotification", {
-                            Title = "Nova Hub",
-                            Text = "طرد تم منعه",
-                            Icon = "rbxassetid://132309954224617",
-                            Duration = 2
-                        })
-                    end
-                    return
-                end
-            end))
-            pcall(function()
-                StarterGui:SetCore("SendNotification", {
-                    Title = "Nova Hub",
-                    Text = "مضاد الطرد مفعل",
-                    Icon = "rbxassetid://132309954224617",
-                    Duration = 3
-                })
             end)
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Nova Hub",
+                Text = "مضاد الطرد مفعل",
+                Duration = 3
+            })
         else
-            pcall(function()
-                StarterGui:SetCore("SendNotification", {
-                    Title = "Nova Hub",
-                    Text = "مضاد طرد معطل",
-                    Icon = "rbxassetid://132309954224617",
-                    Duration = 3
-                })
-            end)
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Nova Hub",
+                Text = "مضاد طرد معطل",
+                Duration = 3
+            })
         end
     end
 })
@@ -6142,7 +6099,6 @@ AntiTab:AddToggle({
                     table.insert(_G.hiddenDoors, doorData)
                 end
             end
-            print("Nova Hub " .. #_G.hiddenDoors .. " Nova Hub ")
         else
             for _, doorData in ipairs(_G.hiddenDoors or {}) do
                 if doorData.door and doorData.door.Parent then
@@ -6159,7 +6115,6 @@ AntiTab:AddToggle({
                     end
                 end
             end
-            print("Nova Hub " .. #(_G.hiddenDoors or {}) .. " Nova Hub ")
             _G.hiddenDoors = {}
         end
     end
@@ -6238,141 +6193,3 @@ AntiTab:AddToggle({
         end)
     end
 })
-
-local function SetupAntiSkybox()
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local LocalPlayer = Players.LocalPlayer
-    
-    local AntiSkyboxEnabled = false
-    local HiddenPlayers = {}
-    local OriginalData = {}
-    local SpamLog = {}
-    local SpamThreshold = 5
-    local TimeWindow = 1
-    local HideDuration = 8
-    local isSetup = false
-
-    local function DetectSpam(userId, attackType)
-        local now = tick()
-        if not SpamLog[userId] then SpamLog[userId] = {} end
-        if not SpamLog[userId][attackType] then SpamLog[userId][attackType] = {} end
-        local log = SpamLog[userId][attackType]
-        table.insert(log, now)
-        for i = #log, 1, -1 do
-            if now - log[i] > TimeWindow then
-                table.remove(log, i)
-            end
-        end
-        return #log >= SpamThreshold
-    end
-
-    local function HidePlayer(player)
-        local userId = player.UserId
-        if HiddenPlayers[userId] then
-            HiddenPlayers[userId] = tick() + HideDuration
-            return
-        end
-        local char = player.Character
-        if not char then return end
-        OriginalData[userId] = {}
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                OriginalData[userId][part] = part.Transparency
-                part.Transparency = 1
-            end
-        end
-        local head = char:FindFirstChild("Head")
-        if head then
-            local billboard = head:FindFirstChildOfClass("BillboardGui")
-            if billboard then
-                OriginalData[userId]["Billboard"] = billboard.Enabled
-                billboard.Enabled = false
-            end
-        end
-        HiddenPlayers[userId] = tick() + HideDuration
-    end
-
-    local function ShowPlayer(player)
-        local userId = player.UserId
-        HiddenPlayers[userId] = nil
-        local char = player.Character
-        if not char then
-            OriginalData[userId] = nil
-            return
-        end
-        if OriginalData[userId] then
-            for obj, originalValue in pairs(OriginalData[userId]) do
-                if obj and obj.Parent then
-                    if obj:IsA("BasePart") then
-                        obj.Transparency = originalValue
-                    elseif type(originalValue) == "boolean" then
-                        obj.Enabled = originalValue
-                    end
-                end
-            end
-            OriginalData[userId] = nil
-        end
-    end
-
-    local function Setup()
-        if isSetup then return end
-        local remote = ReplicatedStorage:FindFirstChild("Remotes")
-        if not remote then return end
-        local changeBody = remote:FindFirstChild("ChangeCharacterBody")
-        if not changeBody then return end
-        local originalInvoke = changeBody.InvokeServer
-        changeBody.InvokeServer = function(self, ...)
-            if AntiSkyboxEnabled then
-                local player = Players:GetPlayerByUserId(self.UserId or 0)
-                if player and player ~= LocalPlayer then
-                    if DetectSpam(player.UserId, "BodyChange") then
-                        HidePlayer(player)
-                    end
-                end
-            end
-            return originalInvoke(self, ...)
-        end
-        isSetup = true
-    end
-
-    task.spawn(Setup)
-
-    Players.PlayerAdded:Connect(function(player)
-        isSetup = false
-        task.spawn(Setup)
-    end)
-
-    Players.PlayerRemoving:Connect(function(player)
-        local userId = player.UserId
-        HiddenPlayers[userId] = nil
-        OriginalData[userId] = nil
-        SpamLog[userId] = nil
-    end)
-
-    RunService.Heartbeat:Connect(function()
-        local now = tick()
-        for userId, hideEndTime in pairs(HiddenPlayers) do
-            if now >= hideEndTime then
-                local player = Players:GetPlayerByUserId(userId)
-                if player then
-                    ShowPlayer(player)
-                else
-                    HiddenPlayers[userId] = nil
-                    OriginalData[userId] = nil
-                end
-            end
-        end
-    end)
-
-    AntiTab:AddToggle({
-        Name = "مضاد SkyBox",
-        Default = false,
-        Callback = function(value)
-            AntiSkyboxEnabled = value
-        end
-    })
-end
-
-task.spawn(SetupAntiSkybox)
