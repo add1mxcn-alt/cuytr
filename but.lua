@@ -1,9 +1,25 @@
+-- التأكد من الخدمات الأساسية
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local UserInputService = game:GetService("UserInputService")
+
+-- انتظار تحميل اللاعب تماماً
+if not LocalPlayer then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    LocalPlayer = Players.LocalPlayer
+end
+
 local Mouse = LocalPlayer:GetMouse()
+
+-- تحديد مكان الواجهة (يحاول CoreGui أولاً للـ Executors، وإذا لم ينجح يستخدم PlayerGui)
+local TargetGuiParent
+local success, _ = pcall(function()
+    TargetGuiParent = CoreGui
+end)
+if not success or not TargetGuiParent then
+    TargetGuiParent = LocalPlayer:WaitForChild("PlayerGui")
+end
 
 local Settings = {
     Enabled = false,
@@ -17,9 +33,16 @@ local ESPConnection = nil
 local MainGui = nil
 local CircleGui = nil
 
+-- تنظيف أي واجهة قديمة بنفس الاسم لتجنب التكرار
+if TargetGuiParent:FindFirstChild("BulletTrackGUI") then
+    TargetGuiParent.BulletTrackGUI:Destroy()
+end
+if TargetGuiParent:FindFirstChild("BulletTrackCircle") then
+    TargetGuiParent.BulletTrackCircle:Destroy()
+end
+
 local function CreateESP(Player)
-    if not Settings.ESPEnabled then return end
-    if Player == LocalPlayer then return end
+    if not Settings.ESPEnabled or Player == LocalPlayer then return end
     
     local Character = Player.Character
     if not Character then return end
@@ -61,14 +84,14 @@ local function CreateESP(Player)
         BG.Parent = HealthBar
         
         local Fill = Instance.new("Frame")
-        Fill.Size = UDim2.new(Hum.Health / Hum.MaxHealth, 0, 1, 0)
+        Fill.Size = UDim2.new(math.clamp(Hum.Health / Hum.MaxHealth, 0, 1), 0, 1, 0)
         Fill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
         Fill.BorderSizePixel = 0
         Fill.Parent = BG
         Fill.Name = "HealthFill"
         
         Hum:GetPropertyChangedSignal("Health"):Connect(function()
-            local HP = Hum.Health / Hum.MaxHealth
+            local HP = math.clamp(Hum.Health / Hum.MaxHealth, 0, 1)
             Fill.Size = UDim2.new(HP, 0, 1, 0)
             if HP > 0.5 then
                 Fill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
@@ -160,7 +183,7 @@ local function CreateCircle()
     
     CircleGui = Instance.new("ScreenGui")
     CircleGui.Name = "BulletTrackCircle"
-    CircleGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    CircleGui.Parent = TargetGuiParent
     CircleGui.ResetOnSpawn = false
     
     local Circle = Instance.new("ImageLabel")
@@ -292,16 +315,19 @@ local function CreateUI()
     
     MainGui = Instance.new("ScreenGui")
     MainGui.Name = "BulletTrackGUI"
-    MainGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    MainGui.Parent = TargetGuiParent
     MainGui.ResetOnSpawn = false
     
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(0, 220, 0, 200)
-    Frame.Position = UDim2.new(0.5, -110, 0.85, -100)
+    -- وضع الواجهة في منتصف الشاشة لضمان ظهورها وعدم خروجها عن الحدود
+    Frame.Position = UDim2.new(0.5, -110, 0.5, -100)
     Frame.BackgroundColor3 = Color3.fromRGB(10, 10, 25)
     Frame.BackgroundTransparency = 0.05
     Frame.BorderSizePixel = 0
     Frame.ClipsDescendants = true
+    Frame.Active = true
+    Frame.Draggable = true -- إضافة إمكانية سحب الواجهة
     Frame.Parent = MainGui
     
     local Corner = Instance.new("UICorner")
@@ -321,18 +347,18 @@ local function CreateUI()
     Title.BackgroundTransparency = 1
     Title.Text = "🎯 بولت تراك"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.TextScaled = true
+    Title.TextSize = 14
     Title.Font = Enum.Font.GothamBold
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = TitleBar
     
     local CloseBtn = Instance.new("TextButton")
     CloseBtn.Size = UDim2.new(0, 22, 0, 22)
-    CloseBtn.Position = UDim2.new(0.9, 0, 0.1, 0)
+    CloseBtn.Position = UDim2.new(0.9, -5, 0.1, 0)
     CloseBtn.BackgroundTransparency = 1
     CloseBtn.Text = "✕"
     CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-    CloseBtn.TextScaled = true
+    CloseBtn.TextSize = 14
     CloseBtn.Font = Enum.Font.GothamBold
     CloseBtn.Parent = TitleBar
     
@@ -348,11 +374,6 @@ local function CreateUI()
             Connection = nil
         end
         StopESP()
-        for _, BV in ipairs(workspace:GetDescendants()) do
-            if BV.Name == "TrackVelocity" then
-                BV:Destroy()
-            end
-        end
     end)
     
     local Status = Instance.new("TextLabel")
@@ -361,7 +382,7 @@ local function CreateUI()
     Status.BackgroundTransparency = 1
     Status.Text = "❌ معطل"
     Status.TextColor3 = Color3.fromRGB(255, 80, 80)
-    Status.TextScaled = true
+    Status.TextSize = 13
     Status.Font = Enum.Font.GothamBold
     Status.Parent = Frame
     
@@ -371,7 +392,7 @@ local function CreateUI()
     ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     ToggleBtn.Text = "▶ تشغيل التتبع"
     ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
-    ToggleBtn.TextScaled = true
+    ToggleBtn.TextSize = 12
     ToggleBtn.Font = Enum.Font.GothamBold
     ToggleBtn.BorderSizePixel = 0
     ToggleBtn.Parent = Frame
@@ -406,11 +427,6 @@ local function CreateUI()
                 CircleGui:Destroy()
                 CircleGui = nil
             end
-            for _, BV in ipairs(workspace:GetDescendants()) do
-                if BV.Name == "TrackVelocity" then
-                    BV:Destroy()
-                end
-            end
         end
     end)
     
@@ -420,7 +436,7 @@ local function CreateUI()
     ESPBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     ESPBtn.Text = "👁️ تشغيل ESP"
     ESPBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
-    ESPBtn.TextScaled = true
+    ESPBtn.TextSize = 12
     ESPBtn.Font = Enum.Font.GothamBold
     ESPBtn.BorderSizePixel = 0
     ESPBtn.Parent = Frame
@@ -451,14 +467,14 @@ local function CreateUI()
     RangeLabel.BackgroundTransparency = 1
     RangeLabel.Text = "المدى: 200"
     RangeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    RangeLabel.TextScaled = true
+    RangeLabel.TextSize = 11
     RangeLabel.Font = Enum.Font.Gotham
     RangeLabel.TextXAlignment = Enum.TextXAlignment.Left
     RangeLabel.Parent = Frame
     
     local RangeBar = Instance.new("Frame")
     RangeBar.Size = UDim2.new(0.5, 0, 0, 6)
-    RangeBar.Position = UDim2.new(0.42, 0, 0, 134)
+    RangeBar.Position = UDim2.new(0.42, 0, 0, 137)
     RangeBar.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     RangeBar.BorderSizePixel = 0
     RangeBar.Parent = Frame
@@ -510,5 +526,6 @@ local function CreateUI()
     end)
 end
 
+-- تشغيل الواجهة
 CreateUI()
-print("تم تحميل بولت تراك")
+print("تم تشغيل السكريبت بنجاح على الأكسكيوتور!")
