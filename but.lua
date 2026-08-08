@@ -1,531 +1,727 @@
--- التأكد من الخدمات الأساسية
+-- واجهة سكربت Roblox موبايل مع AIMBOT و ESP
+-- تشغيل على اكسكيوتر
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
-
--- انتظار تحميل اللاعب تماماً
-if not LocalPlayer then
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-    LocalPlayer = Players.LocalPlayer
-end
-
 local Mouse = LocalPlayer:GetMouse()
 
--- تحديد مكان الواجهة (يحاول CoreGui أولاً للـ Executors، وإذا لم ينجح يستخدم PlayerGui)
-local TargetGuiParent
-local success, _ = pcall(function()
-    TargetGuiParent = CoreGui
-end)
-if not success or not TargetGuiParent then
-    TargetGuiParent = LocalPlayer:WaitForChild("PlayerGui")
-end
-
-local Settings = {
-    Enabled = false,
-    Range = 200,
-    ESPEnabled = false
+-- ====== الألوان ======
+local Colors = {
+    Primary = Color3.fromRGB(0, 150, 255),
+    Secondary = Color3.fromRGB(30, 30, 50),
+    Background = Color3.fromRGB(15, 15, 25),
+    Text = Color3.fromRGB(255, 255, 255),
+    Accent = Color3.fromRGB(0, 200, 255),
+    Green = Color3.fromRGB(0, 255, 100),
+    Red = Color3.fromRGB(255, 50, 50)
 }
 
-local Connection = nil
-local ESPObjects = {}
-local ESPConnection = nil
-local MainGui = nil
-local CircleGui = nil
+-- ====== إنشاء الواجهة الرئيسية ======
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HackGui"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- تنظيف أي واجهة قديمة بنفس الاسم لتجنب التكرار
-if TargetGuiParent:FindFirstChild("BulletTrackGUI") then
-    TargetGuiParent.BulletTrackGUI:Destroy()
-end
-if TargetGuiParent:FindFirstChild("BulletTrackCircle") then
-    TargetGuiParent.BulletTrackCircle:Destroy()
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Colors.Background
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.BorderSizePixel = 2
+MainFrame.BorderColor3 = Colors.Primary
+MainFrame.Size = UDim2.new(0, 450, 0, 550)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.Parent = MainFrame
+MainCorner.CornerRadius = UDim.new(0, 12)
+
+-- ====== شريط العنوان ======
+local TitleBar = Instance.new("Frame")
+TitleBar.Parent = MainFrame
+TitleBar.BackgroundColor3 = Colors.Primary
+TitleBar.BackgroundTransparency = 0.2
+TitleBar.BorderSizePixel = 0
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.Parent = TitleBar
+TitleCorner.CornerRadius = UDim.new(0, 12)
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent = TitleBar
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Size = UDim2.new(1, -50, 1, 0)
+TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+TitleLabel.Text = "⚡ سكربت احترافي ⚡"
+TitleLabel.TextColor3 = Colors.Text
+TitleLabel.TextSize = 18
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- زر إخفاء الواجهة
+local HideBtn = Instance.new("TextButton")
+HideBtn.Parent = TitleBar
+HideBtn.BackgroundColor3 = Colors.Text
+HideBtn.BackgroundTransparency = 0.2
+HideBtn.Size = UDim2.new(0, 28, 0, 28)
+HideBtn.Position = UDim2.new(1, -38, 0, 6)
+HideBtn.Text = "✕"
+HideBtn.TextColor3 = Colors.Text
+HideBtn.TextSize = 16
+HideBtn.Font = Enum.Font.GothamBold
+HideBtn.BorderSizePixel = 0
+
+local HideCorner = Instance.new("UICorner")
+HideCorner.Parent = HideBtn
+HideCorner.CornerRadius = UDim.new(1, 0)
+
+local Visible = true
+HideBtn.MouseButton1Click:Connect(function()
+    Visible = not Visible
+    MainFrame.Visible = Visible
+end)
+
+-- ====== أزرار التابات ======
+local TabFrame = Instance.new("Frame")
+TabFrame.Parent = MainFrame
+TabFrame.BackgroundTransparency = 1
+TabFrame.Size = UDim2.new(1, 0, 0, 35)
+TabFrame.Position = UDim2.new(0, 0, 0, 40)
+
+local Tab1 = Instance.new("TextButton")
+Tab1.Parent = TabFrame
+Tab1.BackgroundColor3 = Colors.Primary
+Tab1.BackgroundTransparency = 0.3
+Tab1.Size = UDim2.new(0.5, -2, 1, -4)
+Tab1.Position = UDim2.new(0, 2, 0, 2)
+Tab1.Text = "🎯 AIMBOT"
+Tab1.TextColor3 = Colors.Text
+Tab1.TextSize = 15
+Tab1.Font = Enum.Font.GothamBold
+Tab1.BorderSizePixel = 0
+
+local Tab1Corner = Instance.new("UICorner")
+Tab1Corner.Parent = Tab1
+Tab1Corner.CornerRadius = UDim.new(0, 6)
+
+local Tab2 = Instance.new("TextButton")
+Tab2.Parent = TabFrame
+Tab2.BackgroundColor3 = Colors.Secondary
+Tab2.BackgroundTransparency = 0.3
+Tab2.Size = UDim2.new(0.5, -2, 1, -4)
+Tab2.Position = UDim2.new(0.5, 2, 0, 2)
+Tab2.Text = "👁️ ESP"
+Tab2.TextColor3 = Colors.Text
+Tab2.TextSize = 15
+Tab2.Font = Enum.Font.GothamBold
+Tab2.BorderSizePixel = 0
+
+local Tab2Corner = Instance.new("UICorner")
+Tab2Corner.Parent = Tab2
+Tab2Corner.CornerRadius = UDim.new(0, 6)
+
+-- ====== محتوى التابات ======
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Parent = MainFrame
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Size = UDim2.new(1, -10, 1, -85)
+ContentFrame.Position = UDim2.new(0, 5, 0, 80)
+
+-- Tab 1: AIMBOT
+local AimbotTab = Instance.new("ScrollingFrame")
+AimbotTab.Parent = ContentFrame
+AimbotTab.BackgroundTransparency = 1
+AimbotTab.Size = UDim2.new(1, 0, 1, 0)
+AimbotTab.ScrollBarThickness = 3
+AimbotTab.ScrollBarImageColor3 = Colors.Primary
+AimbotTab.CanvasSize = UDim2.new(0, 0, 0, 480)
+
+-- Tab 2: ESP
+local EspTab = Instance.new("ScrollingFrame")
+EspTab.Parent = ContentFrame
+EspTab.BackgroundTransparency = 1
+EspTab.Size = UDim2.new(1, 0, 1, 0)
+EspTab.ScrollBarThickness = 3
+EspTab.ScrollBarImageColor3 = Colors.Primary
+EspTab.CanvasSize = UDim2.new(0, 0, 0, 480)
+EspTab.Visible = false
+
+-- ====== دالة إنشاء زر تبديل ======
+function CreateToggle(parent, text, yPos, default)
+    local Frame = Instance.new("Frame")
+    Frame.Parent = parent
+    Frame.BackgroundTransparency = 1
+    Frame.Size = UDim2.new(1, 0, 0, 32)
+    Frame.Position = UDim2.new(0, 0, 0, yPos)
+    
+    local Label = Instance.new("TextLabel")
+    Label.Parent = Frame
+    Label.BackgroundTransparency = 1
+    Label.Size = UDim2.new(0.7, 0, 1, 0)
+    Label.Position = UDim2.new(0, 5, 0, 0)
+    Label.Text = text
+    Label.TextColor3 = Colors.Text
+    Label.TextSize = 13
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local Btn = Instance.new("TextButton")
+    Btn.Parent = Frame
+    Btn.BackgroundColor3 = default and Colors.Primary or Colors.Secondary
+    Btn.Size = UDim2.new(0, 32, 0, 28)
+    Btn.Position = UDim2.new(1, -40, 0, 2)
+    Btn.Text = default and "✓" or "✕"
+    Btn.TextColor3 = Colors.Text
+    Btn.TextSize = 14
+    Btn.Font = Enum.Font.GothamBold
+    Btn.BorderSizePixel = 0
+    
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.Parent = Btn
+    BtnCorner.CornerRadius = UDim.new(1, 0)
+    
+    local Value = default
+    Btn.MouseButton1Click:Connect(function()
+        Value = not Value
+        Btn.BackgroundColor3 = Value and Colors.Primary or Colors.Secondary
+        Btn.Text = Value and "✓" or "✕"
+    end)
+    
+    return function() return Value end
 end
 
-local function CreateESP(Player)
-    if not Settings.ESPEnabled or Player == LocalPlayer then return end
+-- ====== دالة إنشاء قائمة منسدلة ======
+function CreateDropdown(parent, text, yPos, options, defaultIdx)
+    local Frame = Instance.new("Frame")
+    Frame.Parent = parent
+    Frame.BackgroundTransparency = 1
+    Frame.Size = UDim2.new(1, 0, 0, 32)
+    Frame.Position = UDim2.new(0, 0, 0, yPos)
     
-    local Character = Player.Character
-    if not Character then return end
+    local Label = Instance.new("TextLabel")
+    Label.Parent = Frame
+    Label.BackgroundTransparency = 1
+    Label.Size = UDim2.new(0.35, 0, 1, 0)
+    Label.Position = UDim2.new(0, 5, 0, 0)
+    Label.Text = text
+    Label.TextColor3 = Colors.Text
+    Label.TextSize = 13
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
     
-    local HRP = Character:FindFirstChild("HumanoidRootPart")
-    if not HRP then return end
+    local Btn = Instance.new("TextButton")
+    Btn.Parent = Frame
+    Btn.BackgroundColor3 = Colors.Secondary
+    Btn.Size = UDim2.new(0.6, -10, 1, -4)
+    Btn.Position = UDim2.new(0.4, 5, 0, 2)
+    Btn.Text = options[defaultIdx or 1]
+    Btn.TextColor3 = Colors.Text
+    Btn.TextSize = 12
+    Btn.Font = Enum.Font.Gotham
+    Btn.BorderSizePixel = 0
     
-    if ESPObjects[Player] then
-        ESPObjects[Player]:Destroy()
-        ESPObjects[Player] = nil
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.Parent = Btn
+    BtnCorner.CornerRadius = UDim.new(0, 4)
+    
+    local Selected = defaultIdx or 1
+    Btn.MouseButton1Click:Connect(function()
+        Selected = Selected % #options + 1
+        Btn.Text = options[Selected]
+    end)
+    
+    return function() return Selected, options[Selected] end
+end
+
+-- ====== AIMBOT Settings ======
+local aimY = 5
+
+local AimbotEnabled = CreateToggle(AimbotTab, "🔫 تفعيل الـ AIMBOT", aimY, true)
+aimY = aimY + 37
+
+local AimPart = CreateDropdown(AimbotTab, "🎯 نقطة التصويب:", aimY, {"الرأس", "الجسم", "الرجل"}, 1)
+aimY = aimY + 37
+
+local Priority = CreateDropdown(AimbotTab, "🎯 أولوية التحديد:", aimY, {"الأقرب", "الأبعد", "أقل دم"}, 1)
+aimY = aimY + 37
+
+local WallCheck = CreateToggle(AimbotTab, "🧱 تجاهل خلف الجدار", aimY, true)
+aimY = aimY + 37
+
+local TeamCheck = CreateToggle(AimbotTab, "👥 تجاهل فريقك", aimY, true)
+aimY = aimY + 37
+
+-- FOV Slider
+local FovFrame = Instance.new("Frame")
+FovFrame.Parent = AimbotTab
+FovFrame.BackgroundTransparency = 1
+FovFrame.Size = UDim2.new(1, 0, 0, 32)
+FovFrame.Position = UDim2.new(0, 0, 0, aimY)
+
+local FovLabel = Instance.new("TextLabel")
+FovLabel.Parent = FovFrame
+FovLabel.BackgroundTransparency = 1
+FovLabel.Size = UDim2.new(0.35, 0, 1, 0)
+FovLabel.Position = UDim2.new(0, 5, 0, 0)
+FovLabel.Text = "📏 مسافة FOV:"
+FovLabel.TextColor3 = Colors.Text
+FovLabel.TextSize = 13
+FovLabel.Font = Enum.Font.Gotham
+FovLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local FovValue = Instance.new("TextLabel")
+FovValue.Parent = FovFrame
+FovValue.BackgroundTransparency = 1
+FovValue.Size = UDim2.new(0.1, 0, 1, 0)
+FovValue.Position = UDim2.new(0.35, 5, 0, 0)
+FovValue.Text = "200"
+FovValue.TextColor3 = Colors.Primary
+FovValue.TextSize = 13
+FovValue.Font = Enum.Font.GothamBold
+
+local FovInput = Instance.new("TextBox")
+FovInput.Parent = FovFrame
+FovInput.BackgroundColor3 = Colors.Secondary
+FovInput.Size = UDim2.new(0.5, -10, 1, -4)
+FovInput.Position = UDim2.new(0.5, 5, 0, 2)
+FovInput.Text = "200"
+FovInput.TextColor3 = Colors.Text
+FovInput.TextSize = 12
+FovInput.Font = Enum.Font.Gotham
+FovInput.BorderSizePixel = 0
+
+local FovInputCorner = Instance.new("UICorner")
+FovInputCorner.Parent = FovInput
+FovInputCorner.CornerRadius = UDim.new(0, 4)
+
+local FovSize = 200
+FovInput.FocusLost:Connect(function()
+    local num = tonumber(FovInput.Text)
+    if num then
+        FovSize = math.clamp(num, 10, 500)
+        FovInput.Text = tostring(FovSize)
+        FovValue.Text = tostring(FovSize)
+        UpdateFOVCircle()
+    else
+        FovInput.Text = tostring(FovSize)
     end
-    
-    local Folder = Instance.new("Folder")
-    Folder.Name = "ESP_" .. Player.Name
-    Folder.Parent = Character
-    
-    local Box = Instance.new("BoxHandleAdornment")
-    Box.Size = Vector3.new(4, 6, 2)
-    Box.Color3 = Color3.fromRGB(0, 255, 0)
-    Box.Transparency = 0.3
-    Box.AlwaysOnTop = true
-    Box.ZIndex = 10
-    Box.Adornee = HRP
-    Box.Parent = Folder
-    
-    local Hum = Character:FindFirstChildOfClass("Humanoid")
-    if Hum then
-        local HealthBar = Instance.new("BillboardGui")
-        HealthBar.Size = UDim2.new(0, 50, 0, 5)
-        HealthBar.StudsOffset = Vector3.new(0, 3.5, 0)
-        HealthBar.AlwaysOnTop = true
-        HealthBar.Parent = HRP
-        
-        local BG = Instance.new("Frame")
-        BG.Size = UDim2.new(1, 0, 1, 0)
-        BG.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        BG.BackgroundTransparency = 0.5
-        BG.BorderSizePixel = 0
-        BG.Parent = HealthBar
-        
-        local Fill = Instance.new("Frame")
-        Fill.Size = UDim2.new(math.clamp(Hum.Health / Hum.MaxHealth, 0, 1), 0, 1, 0)
-        Fill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        Fill.BorderSizePixel = 0
-        Fill.Parent = BG
-        Fill.Name = "HealthFill"
-        
-        Hum:GetPropertyChangedSignal("Health"):Connect(function()
-            local HP = math.clamp(Hum.Health / Hum.MaxHealth, 0, 1)
-            Fill.Size = UDim2.new(HP, 0, 1, 0)
-            if HP > 0.5 then
-                Fill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-            elseif HP > 0.25 then
-                Fill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
-            else
-                Fill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            end
-        end)
-    end
-    
-    local NameLabel = Instance.new("BillboardGui")
-    NameLabel.Size = UDim2.new(0, 100, 0, 16)
-    NameLabel.StudsOffset = Vector3.new(0, 4, 0)
-    NameLabel.AlwaysOnTop = true
-    NameLabel.Parent = HRP
-    
-    local NameText = Instance.new("TextLabel")
-    NameText.Size = UDim2.new(1, 0, 1, 0)
-    NameText.BackgroundTransparency = 1
-    NameText.Text = Player.Name
-    NameText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NameText.TextScaled = true
-    NameText.Font = Enum.Font.GothamBold
-    NameText.Parent = NameLabel
-    
-    ESPObjects[Player] = Folder
-end
+end)
 
-local function RemoveESP(Player)
-    if ESPObjects[Player] then
-        ESPObjects[Player]:Destroy()
-        ESPObjects[Player] = nil
+aimY = aimY + 37
+
+-- ====== دائرة FOV ======
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Parent = ScreenGui
+FOVCircle.BackgroundTransparency = 0.8
+FOVCircle.BorderSizePixel = 2
+FOVCircle.BorderColor3 = Colors.Primary
+FOVCircle.BackgroundColor3 = Colors.Primary
+FOVCircle.Size = UDim2.new(0, 0, 0, 0)
+FOVCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+FOVCircle.Visible = false
+
+local FOVCircleCorner = Instance.new("UICorner")
+FOVCircleCorner.Parent = FOVCircle
+FOVCircleCorner.CornerRadius = UDim.new(1, 0)
+
+function UpdateFOVCircle()
+    if AimbotEnabled() then
+        FOVCircle.Visible = true
+        local size = FovSize * 2
+        local scale = Camera.ViewportSize.X / 1000
+        local finalSize = size * scale
+        FOVCircle.Size = UDim2.new(0, finalSize, 0, finalSize)
+        FOVCircle.Position = UDim2.new(0.5, -finalSize/2, 0.5, -finalSize/2)
+        FOVCircle.BackgroundTransparency = 0.85
+    else
+        FOVCircle.Visible = false
     end
 end
 
-local function UpdateESP()
-    if not Settings.ESPEnabled then
-        for _, Folder in pairs(ESPObjects) do
-            Folder:Destroy()
+-- ====== ESP Settings ======
+local espY = 5
+
+local EspEnabled = CreateToggle(EspTab, "👁️ تفعيل الـ ESP", espY, true)
+espY = espY + 37
+
+local NameToggle = CreateToggle(EspTab, "📝 إظهار الأسماء", espY, true)
+espY = espY + 37
+
+local BoxToggle = CreateToggle(EspTab, "📦 إظهار المربع", espY, true)
+espY = espY + 37
+
+local DistanceToggle = CreateToggle(EspTab, "📏 إظهار المسافة", espY, true)
+espY = espY + 37
+
+local HealthToggle = CreateToggle(EspTab, "❤️ إظهار الدم", espY, true)
+espY = espY + 37
+
+local ArrowToggle = CreateToggle(EspTab, "⬆️ إظهار السهم", espY, true)
+espY = espY + 37
+
+local EspFriends = CreateToggle(EspTab, "👫 إخفاء ESP الأصدقاء", espY, false)
+espY = espY + 37
+
+-- ====== تبديل التابات ======
+Tab1.MouseButton1Click:Connect(function()
+    AimbotTab.Visible = true
+    EspTab.Visible = false
+    Tab1.BackgroundColor3 = Colors.Primary
+    Tab2.BackgroundColor3 = Colors.Secondary
+end)
+
+Tab2.MouseButton1Click:Connect(function()
+    AimbotTab.Visible = false
+    EspTab.Visible = true
+    Tab2.BackgroundColor3 = Colors.Primary
+    Tab1.BackgroundColor3 = Colors.Secondary
+end)
+
+-- ====== نظام ESP ======
+local EspObjects = {}
+local EspColor = Colors.Primary
+
+function CreateESP(player)
+    if player == LocalPlayer then return end
+    
+    local Box = Instance.new("Frame")
+    Box.Parent = ScreenGui
+    Box.BackgroundTransparency = 0.8
+    Box.BorderSizePixel = 2
+    Box.BorderColor3 = EspColor
+    Box.BackgroundColor3 = EspColor
+    Box.Visible = false
+    
+    local Name = Instance.new("TextLabel")
+    Name.Parent = ScreenGui
+    Name.BackgroundTransparency = 1
+    Name.Size = UDim2.new(0, 200, 0, 18)
+    Name.Text = player.Name
+    Name.TextColor3 = Colors.Text
+    Name.TextSize = 13
+    Name.Font = Enum.Font.GothamBold
+    Name.TextStrokeTransparency = 0.3
+    Name.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    Name.Visible = false
+    
+    local Dist = Instance.new("TextLabel")
+    Dist.Parent = ScreenGui
+    Dist.BackgroundTransparency = 1
+    Dist.Size = UDim2.new(0, 100, 0, 16)
+    Dist.Text = "0m"
+    Dist.TextColor3 = Colors.Text
+    Dist.TextSize = 12
+    Dist.Font = Enum.Font.Gotham
+    Dist.TextStrokeTransparency = 0.3
+    Dist.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    Dist.Visible = false
+    
+    local HealthBg = Instance.new("Frame")
+    HealthBg.Parent = ScreenGui
+    HealthBg.Size = UDim2.new(0, 50, 0, 3)
+    HealthBg.BackgroundColor3 = Colors.Secondary
+    HealthBg.BorderSizePixel = 0
+    HealthBg.Visible = false
+    
+    local Health = Instance.new("Frame")
+    Health.Parent = ScreenGui
+    Health.Size = UDim2.new(0, 50, 0, 3)
+    Health.BackgroundColor3 = Colors.Green
+    Health.BorderSizePixel = 0
+    Health.Visible = false
+    
+    local Arrow = Instance.new("TextLabel")
+    Arrow.Parent = ScreenGui
+    Arrow.BackgroundTransparency = 1
+    Arrow.Size = UDim2.new(0, 25, 0, 25)
+    Arrow.Text = "⬇️"
+    Arrow.TextColor3 = EspColor
+    Arrow.TextSize = 20
+    Arrow.Visible = false
+    
+    EspObjects[player] = {
+        Box = Box,
+        Name = Name,
+        Dist = Dist,
+        Health = Health,
+        HealthBg = HealthBg,
+        Arrow = Arrow,
+        Player = player
+    }
+end
+
+function UpdateESP()
+    if not EspEnabled() then
+        for _, data in pairs(EspObjects) do
+            data.Box.Visible = false
+            data.Name.Visible = false
+            data.Dist.Visible = false
+            data.Health.Visible = false
+            data.HealthBg.Visible = false
+            data.Arrow.Visible = false
         end
-        ESPObjects = {}
         return
     end
     
-    for _, Player in ipairs(Players:GetPlayers()) do
-        if Player ~= LocalPlayer then
-            CreateESP(Player)
+    for _, data in pairs(EspObjects) do
+        local player = data.Player
+        if not player or not player.Character or not player.Character:FindFirstChild("Humanoid") or not player.Character:FindFirstChild("Head") then
+            data.Box.Visible = false
+            data.Name.Visible = false
+            data.Dist.Visible = false
+            data.Health.Visible = false
+            data.HealthBg.Visible = false
+            data.Arrow.Visible = false
+            goto continue
         end
+        
+        if EspFriends() and player:IsFriendsWith(LocalPlayer.UserId) then
+            data.Box.Visible = false
+            data.Name.Visible = false
+            data.Dist.Visible = false
+            data.Health.Visible = false
+            data.HealthBg.Visible = false
+            data.Arrow.Visible = false
+            goto continue
+        end
+        
+        local head = player.Character.Head
+        local humanoid = player.Character.Humanoid
+        local root = player.Character:FindFirstChild("HumanoidRootPart")
+        if not root then goto continue end
+        
+        local vec, onScreen = Camera:WorldToScreenPoint(root.Position)
+        local headPos, headOn = Camera:WorldToScreenPoint(head.Position + Vector3.new(0, 1.5, 0))
+        local feetPos, feetOn = Camera:WorldToScreenPoint(root.Position - Vector3.new(0, 3, 0))
+        
+        if not onScreen and not headOn and not feetOn then
+            data.Box.Visible = false
+            data.Name.Visible = false
+            data.Dist.Visible = false
+            data.Health.Visible = false
+            data.HealthBg.Visible = false
+            data.Arrow.Visible = false
+            goto continue
+        end
+        
+        local dist = (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and 
+                     (LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude) or 0
+        
+        local height = math.abs(headPos.Y - feetPos.Y)
+        local width = height * 0.6
+        local x = vec.X - width/2
+        local y = feetPos.Y - height
+        
+        if BoxToggle() then
+            data.Box.Visible = true
+            data.Box.Size = UDim2.new(0, width, 0, height)
+            data.Box.Position = UDim2.new(0, x, 0, y)
+        else
+            data.Box.Visible = false
+        end
+        
+        if NameToggle() then
+            data.Name.Visible = true
+            data.Name.Position = UDim2.new(0, x + width/2 - 100, 0, y - 18)
+        else
+            data.Name.Visible = false
+        end
+        
+        if DistanceToggle() then
+            data.Dist.Visible = true
+            data.Dist.Position = UDim2.new(0, x + width/2 - 50, 0, y + height + 2)
+            data.Dist.Text = string.format("%.1fm", dist)
+        else
+            data.Dist.Visible = false
+        end
+        
+        if HealthToggle() then
+            local hp = humanoid.Health / humanoid.MaxHealth
+            data.HealthBg.Visible = true
+            data.HealthBg.Position = UDim2.new(0, x + 5, 0, y + height + 16)
+            data.Health.Visible = true
+            data.Health.Position = UDim2.new(0, x + 5, 0, y + height + 16)
+            data.Health.Size = UDim2.new(0, (width - 10) * hp, 0, 3)
+            data.Health.BackgroundColor3 = hp > 0.5 and Colors.Green or 
+                                          hp > 0.25 and Color3.fromRGB(255, 200, 0) or 
+                                          Colors.Red
+        else
+            data.Health.Visible = false
+            data.HealthBg.Visible = false
+        end
+        
+        if ArrowToggle() then
+            if not onScreen then
+                data.Arrow.Visible = true
+                local size = Camera.ViewportSize
+                local center = Vector2.new(size.X/2, size.Y/2)
+                local dir = (Vector2.new(vec.X, vec.Y) - center).Unit
+                local pos = center + dir * math.min(size.X, size.Y) * 0.4
+                data.Arrow.Position = UDim2.new(0, pos.X - 12, 0, pos.Y - 12)
+            else
+                data.Arrow.Visible = false
+            end
+        else
+            data.Arrow.Visible = false
+        end
+        
+        ::continue::
     end
 end
 
-local function StartESP()
-    if ESPConnection then
-        ESPConnection:Disconnect()
-        ESPConnection = nil
+-- ====== نظام AIMBOT ======
+local Target = nil
+
+function IsVisible(origin, targetPos)
+    local ray = Ray.new(origin, (targetPos - origin).Unit * (targetPos - origin).Magnitude)
+    local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character})
+    if hit then
+        return (pos - origin).Magnitude >= (targetPos - origin).Magnitude - 1
+    end
+    return true
+end
+
+function GetBestTarget()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local origin = LocalPlayer.Character.HumanoidRootPart.Position
+    local bestScore = math.huge
+    local bestTarget = nil
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then continue end
+        if not player.Character:FindFirstChild("Head") then continue end
+        
+        if TeamCheck() and LocalPlayer.Team and player.Team == LocalPlayer.Team then
+            continue
+        end
+        
+        local root = player.Character.HumanoidRootPart
+        local head = player.Character.Head
+        local targetPos = root.Position
+        
+        if WallCheck() and not IsVisible(origin, targetPos) then
+            continue
+        end
+        
+        local dist = (origin - targetPos).Magnitude
+        
+        if dist > FovSize then
+            continue
+        end
+        
+        local _, priorityName = Priority()
+        local score = 0
+        
+        if priorityName == "الأقرب" then
+            score = dist
+        elseif priorityName == "الأبعد" then
+            score = -dist
+        elseif priorityName == "أقل دم" then
+            local hum = player.Character:FindFirstChild("Humanoid")
+            score = hum and hum.Health or 100
+        end
+        
+        if score < bestScore then
+            bestScore = score
+            bestTarget = {
+                Player = player,
+                Root = root,
+                Head = head,
+                Dist = dist
+            }
+        end
+    end
+    
+    return bestTarget
+end
+
+-- ====== اللوب الرئيسي ======
+RunService.RenderStepped:Connect(function()
+    if AimbotEnabled() then
+        local best = GetBestTarget()
+        Target = best
+        
+        if best and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local _, aimPartName = AimPart()
+            local targetPos
+            
+            if aimPartName == "الرأس" then
+                targetPos = best.Head.Position
+            elseif aimPartName == "الجسم" then
+                targetPos = best.Root.Position
+            else
+                targetPos = best.Root.Position - Vector3.new(0, 2, 0)
+            end
+            
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPos)
+        end
+        
+        UpdateFOVCircle()
+    else
+        FOVCircle.Visible = false
     end
     
     UpdateESP()
-    
-    ESPConnection = Players.PlayerAdded:Connect(function(Player)
-        task.wait(0.5)
-        if Settings.ESPEnabled then
-            CreateESP(Player)
-        end
-    end)
-    
-    Players.PlayerRemoving:Connect(function(Player)
-        RemoveESP(Player)
-    end)
-end
+end)
 
-local function StopESP()
-    if ESPConnection then
-        ESPConnection:Disconnect()
-        ESPConnection = nil
+-- ====== إضافة وإزالة اللاعبين ======
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LocalPlayer then
+        CreateESP(player)
     end
-    for _, Folder in pairs(ESPObjects) do
-        Folder:Destroy()
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if EspObjects[player] then
+        for _, obj in pairs(EspObjects[player]) do
+            obj:Destroy()
+        end
+        EspObjects[player] = nil
     end
-    ESPObjects = {}
-end
+end)
 
-local function CreateCircle()
-    if CircleGui then
-        CircleGui:Destroy()
-        CircleGui = nil
-    end
-    
-    CircleGui = Instance.new("ScreenGui")
-    CircleGui.Name = "BulletTrackCircle"
-    CircleGui.Parent = TargetGuiParent
-    CircleGui.ResetOnSpawn = false
-    
-    local Circle = Instance.new("ImageLabel")
-    Circle.Size = UDim2.new(0, 200, 0, 200)
-    Circle.Position = UDim2.new(0.5, -100, 0.5, -100)
-    Circle.BackgroundTransparency = 1
-    Circle.Image = "rbxassetid://5551475664"
-    Circle.ImageColor3 = Color3.fromRGB(0, 255, 50)
-    Circle.ImageTransparency = 0.3
-    Circle.Parent = CircleGui
-    
-    local Dot = Instance.new("ImageLabel")
-    Dot.Size = UDim2.new(0, 4, 0, 4)
-    Dot.Position = UDim2.new(0.5, -2, 0.5, -2)
-    Dot.BackgroundTransparency = 1
-    Dot.Image = "rbxassetid://5551475664"
-    Dot.ImageColor3 = Color3.fromRGB(255, 0, 0)
-    Dot.Parent = Circle
-end
-
-local function GetClosestTarget()
-    local Char = LocalPlayer.Character
-    if not Char then return nil end
-    
-    local HRP = Char:FindFirstChild("HumanoidRootPart")
-    if not HRP then return nil end
-    
-    local Closest = nil
-    local ClosestDist = Settings.Range
-    
-    for _, Player in ipairs(Players:GetPlayers()) do
-        if Player ~= LocalPlayer then
-            local TChar = Player.Character
-            if TChar then
-                local THRP = TChar:FindFirstChild("HumanoidRootPart")
-                if THRP then
-                    local Dist = (HRP.Position - THRP.Position).Magnitude
-                    if Dist < ClosestDist then
-                        local Hum = TChar:FindFirstChildOfClass("Humanoid")
-                        if Hum and Hum.Health > 0 then
-                            Closest = TChar
-                            ClosestDist = Dist
-                        end
-                    end
-                end
-            end
-        end
-    end
-    
-    return Closest
-end
-
-local function TrackProjectile(Projectile)
-    if not Settings.Enabled then return end
-    
-    local Target = GetClosestTarget()
-    if not Target then return end
-    
-    local TargetPart = Target:FindFirstChild("Head") or Target:FindFirstChild("HumanoidRootPart")
-    if not TargetPart then return end
-    
-    local BV = Projectile:FindFirstChild("TrackVelocity")
-    if BV then BV:Destroy() end
-    
-    local NewBV = Instance.new("BodyVelocity")
-    NewBV.Name = "TrackVelocity"
-    NewBV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    NewBV.P = 9e9
-    
-    local Dir = (TargetPart.Position - Projectile.Position).Unit
-    NewBV.Velocity = Dir * 500
-    NewBV.Parent = Projectile
-    
-    task.spawn(function()
-        local Start = tick()
-        while Projectile and Projectile.Parent and (Projectile.Position - TargetPart.Position).Magnitude > 2 do
-            if not Settings.Enabled then break end
-            if tick() - Start > 5 then break end
-            
-            local NewDir = (TargetPart.Position - Projectile.Position).Unit
-            NewBV.Velocity = NewDir * 500
-            task.wait()
-        end
-        
-        if NewBV and NewBV.Parent then
-            NewBV:Destroy()
-        end
-    end)
-end
-
-local function DetectProjectiles()
-    if not Settings.Enabled then return end
-    
-    for _, Part in ipairs(workspace:GetDescendants()) do
-        if Part:IsA("BasePart") and not Part:IsDescendantOf(LocalPlayer.Character) then
-            if Part.Velocity.Magnitude > 50 and Part.Size.Magnitude < 10 then
-                if not Part:FindFirstChild("Tracked") then
-                    local Tag = Instance.new("BoolValue")
-                    Tag.Name = "Tracked"
-                    Tag.Parent = Part
-                    TrackProjectile(Part)
-                end
-            end
-        end
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        CreateESP(player)
     end
 end
 
-local function StartTracking()
-    if Connection then
-        Connection:Disconnect()
-        Connection = nil
-    end
-    
-    Connection = RunService.Heartbeat:Connect(function()
-        if not Settings.Enabled then
-            Connection:Disconnect()
-            Connection = nil
-            return
-        end
-        DetectProjectiles()
-    end)
-end
+-- ====== زر إخفاء باللمس للموبايل ======
+local touchBtn = Instance.new("TextButton")
+touchBtn.Parent = ScreenGui
+touchBtn.BackgroundColor3 = Colors.Primary
+touchBtn.BackgroundTransparency = 0.2
+touchBtn.Size = UDim2.new(0, 50, 0, 50)
+touchBtn.Position = UDim2.new(0, 10, 1, -60)
+touchBtn.Text = "☰"
+touchBtn.TextColor3 = Colors.Text
+touchBtn.TextSize = 20
+touchBtn.Font = Enum.Font.GothamBold
+touchBtn.BorderSizePixel = 0
 
-local function CreateUI()
-    if MainGui then
-        MainGui:Destroy()
-        MainGui = nil
-    end
-    
-    MainGui = Instance.new("ScreenGui")
-    MainGui.Name = "BulletTrackGUI"
-    MainGui.Parent = TargetGuiParent
-    MainGui.ResetOnSpawn = false
-    
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 220, 0, 200)
-    -- وضع الواجهة في منتصف الشاشة لضمان ظهورها وعدم خروجها عن الحدود
-    Frame.Position = UDim2.new(0.5, -110, 0.5, -100)
-    Frame.BackgroundColor3 = Color3.fromRGB(10, 10, 25)
-    Frame.BackgroundTransparency = 0.05
-    Frame.BorderSizePixel = 0
-    Frame.ClipsDescendants = true
-    Frame.Active = true
-    Frame.Draggable = true -- إضافة إمكانية سحب الواجهة
-    Frame.Parent = MainGui
-    
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 10)
-    Corner.Parent = Frame
-    
-    local TitleBar = Instance.new("Frame")
-    TitleBar.Size = UDim2.new(1, 0, 0, 28)
-    TitleBar.BackgroundColor3 = Color3.fromRGB(0, 120, 220)
-    TitleBar.BackgroundTransparency = 0.15
-    TitleBar.BorderSizePixel = 0
-    TitleBar.Parent = Frame
-    
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(0.7, 0, 1, 0)
-    Title.Position = UDim2.new(0, 10, 0, 0)
-    Title.BackgroundTransparency = 1
-    Title.Text = "🎯 بولت تراك"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.TextSize = 14
-    Title.Font = Enum.Font.GothamBold
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.Parent = TitleBar
-    
-    local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Size = UDim2.new(0, 22, 0, 22)
-    CloseBtn.Position = UDim2.new(0.9, -5, 0.1, 0)
-    CloseBtn.BackgroundTransparency = 1
-    CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-    CloseBtn.TextSize = 14
-    CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.Parent = TitleBar
-    
-    CloseBtn.MouseButton1Click:Connect(function()
-        MainGui:Destroy()
-        MainGui = nil
-        if CircleGui then
-            CircleGui:Destroy()
-            CircleGui = nil
-        end
-        if Connection then
-            Connection:Disconnect()
-            Connection = nil
-        end
-        StopESP()
-    end)
-    
-    local Status = Instance.new("TextLabel")
-    Status.Size = UDim2.new(1, 0, 0, 22)
-    Status.Position = UDim2.new(0, 0, 0, 32)
-    Status.BackgroundTransparency = 1
-    Status.Text = "❌ معطل"
-    Status.TextColor3 = Color3.fromRGB(255, 80, 80)
-    Status.TextSize = 13
-    Status.Font = Enum.Font.GothamBold
-    Status.Parent = Frame
-    
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(0.8, 0, 0, 30)
-    ToggleBtn.Position = UDim2.new(0.1, 0, 0, 58)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    ToggleBtn.Text = "▶ تشغيل التتبع"
-    ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
-    ToggleBtn.TextSize = 12
-    ToggleBtn.Font = Enum.Font.GothamBold
-    ToggleBtn.BorderSizePixel = 0
-    ToggleBtn.Parent = Frame
-    
-    local ToggleCorner = Instance.new("UICorner")
-    ToggleCorner.CornerRadius = UDim.new(0, 6)
-    ToggleCorner.Parent = ToggleBtn
-    
-    ToggleBtn.MouseButton1Click:Connect(function()
-        Settings.Enabled = not Settings.Enabled
-        
-        if Settings.Enabled then
-            ToggleBtn.Text = "⏹ إيقاف التتبع"
-            ToggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-            Status.Text = "✅ مفعل"
-            Status.TextColor3 = Color3.fromRGB(0, 255, 100)
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
-            StartTracking()
-            CreateCircle()
-        else
-            ToggleBtn.Text = "▶ تشغيل التتبع"
-            ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
-            Status.Text = "❌ معطل"
-            Status.TextColor3 = Color3.fromRGB(255, 80, 80)
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-            
-            if Connection then
-                Connection:Disconnect()
-                Connection = nil
-            end
-            if CircleGui then
-                CircleGui:Destroy()
-                CircleGui = nil
-            end
-        end
-    end)
-    
-    local ESPBtn = Instance.new("TextButton")
-    ESPBtn.Size = UDim2.new(0.8, 0, 0, 28)
-    ESPBtn.Position = UDim2.new(0.1, 0, 0, 93)
-    ESPBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    ESPBtn.Text = "👁️ تشغيل ESP"
-    ESPBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
-    ESPBtn.TextSize = 12
-    ESPBtn.Font = Enum.Font.GothamBold
-    ESPBtn.BorderSizePixel = 0
-    ESPBtn.Parent = Frame
-    
-    local ESPCorner = Instance.new("UICorner")
-    ESPCorner.CornerRadius = UDim.new(0, 6)
-    ESPCorner.Parent = ESPBtn
-    
-    ESPBtn.MouseButton1Click:Connect(function()
-        Settings.ESPEnabled = not Settings.ESPEnabled
-        
-        if Settings.ESPEnabled then
-            ESPBtn.Text = "👁️ إيقاف ESP"
-            ESPBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
-            ESPBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 20)
-            StartESP()
-        else
-            ESPBtn.Text = "👁️ تشغيل ESP"
-            ESPBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
-            ESPBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-            StopESP()
-        end
-    end)
-    
-    local RangeLabel = Instance.new("TextLabel")
-    RangeLabel.Size = UDim2.new(0.4, 0, 0, 20)
-    RangeLabel.Position = UDim2.new(0.05, 0, 0, 130)
-    RangeLabel.BackgroundTransparency = 1
-    RangeLabel.Text = "المدى: 200"
-    RangeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    RangeLabel.TextSize = 11
-    RangeLabel.Font = Enum.Font.Gotham
-    RangeLabel.TextXAlignment = Enum.TextXAlignment.Left
-    RangeLabel.Parent = Frame
-    
-    local RangeBar = Instance.new("Frame")
-    RangeBar.Size = UDim2.new(0.5, 0, 0, 6)
-    RangeBar.Position = UDim2.new(0.42, 0, 0, 137)
-    RangeBar.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    RangeBar.BorderSizePixel = 0
-    RangeBar.Parent = Frame
-    
-    local BarCorner = Instance.new("UICorner")
-    BarCorner.CornerRadius = UDim.new(0, 3)
-    BarCorner.Parent = RangeBar
-    
-    local BarFill = Instance.new("Frame")
-    BarFill.Size = UDim2.new(0.5, 0, 1, 0)
-    BarFill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-    BarFill.BorderSizePixel = 0
-    BarFill.Parent = RangeBar
-    
-    local FillCorner = Instance.new("UICorner")
-    FillCorner.CornerRadius = UDim.new(0, 3)
-    FillCorner.Parent = BarFill
-    
-    local function UpdateRange(Value)
-        local Clamped = math.clamp(Value, 50, 500)
-        Settings.Range = Clamped
-        BarFill.Size = UDim2.new((Clamped - 50) / 450, 0, 1, 0)
-        RangeLabel.Text = "المدى: " .. math.floor(Clamped)
-    end
-    
-    local Dragging = false
-    Mouse.Button1Down:Connect(function()
-        local MousePos = Mouse.X
-        local SliderPos = RangeBar.AbsolutePosition.X
-        local SliderSize = RangeBar.AbsoluteSize.X
-        if MousePos >= SliderPos and MousePos <= SliderPos + SliderSize then
-            Dragging = true
-        end
-    end)
-    
-    Mouse.Button1Up:Connect(function()
-        Dragging = false
-    end)
-    
-    Mouse.Move:Connect(function()
-        if not Dragging then return end
-        local MousePos = Mouse.X
-        local SliderPos = RangeBar.AbsolutePosition.X
-        local SliderSize = RangeBar.AbsoluteSize.X
-        if SliderSize > 0 then
-            local Value = ((MousePos - SliderPos) / SliderSize) * 450 + 50
-            UpdateRange(Value)
-        end
-    end)
-end
+local touchCorner = Instance.new("UICorner")
+touchCorner.Parent = touchBtn
+touchCorner.CornerRadius = UDim.new(1, 0)
 
--- تشغيل الواجهة
-CreateUI()
-print("تم تشغيل السكريبت بنجاح على الأكسكيوتور!")
+touchBtn.MouseButton1Click:Connect(function()
+    Visible = not Visible
+    MainFrame.Visible = Visible
+end)
+
+-- ====== أنيميشن دخول ======
+MainFrame.Size = UDim2.new(0, 0, 0, 0)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+
+local TweenIn = TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 450, 0, 550),
+    Position = UDim2.new(0.5, -225, 0.5, -275)
+})
+TweenIn:Play()
+
+print("✅ تم تشغيل السكربت بنجاح للموبايل!")
