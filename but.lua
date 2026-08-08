@@ -129,7 +129,7 @@ local function StartESP()
     
     UpdateESP()
     
-    Players.PlayerAdded:Connect(function(Player)
+    ESPConnection = Players.PlayerAdded:Connect(function(Player)
         task.wait(0.5)
         if Settings.ESPEnabled then
             CreateESP(Player)
@@ -160,7 +160,7 @@ local function CreateCircle()
     
     CircleGui = Instance.new("ScreenGui")
     CircleGui.Name = "BulletTrackCircle"
-    CircleGui.Parent = LocalPlayer.PlayerGui
+    CircleGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     CircleGui.ResetOnSpawn = false
     
     local Circle = Instance.new("ImageLabel")
@@ -292,7 +292,7 @@ local function CreateUI()
     
     MainGui = Instance.new("ScreenGui")
     MainGui.Name = "BulletTrackGUI"
-    MainGui.Parent = LocalPlayer.PlayerGui
+    MainGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     MainGui.ResetOnSpawn = false
     
     local Frame = Instance.new("Frame")
