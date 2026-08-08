@@ -16,7 +16,6 @@ local ESPObjects = {}
 local ESPConnection = nil
 local MainGui = nil
 local CircleGui = nil
-local ESPActive = false
 
 local function CreateESP(Player)
     if not Settings.ESPEnabled then return end
@@ -298,9 +297,9 @@ local function CreateUI()
     
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(0, 220, 0, 200)
-    Frame.Position = UDim2.new(0.5, -110, 0.8, -100)
-    Frame.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
-    Frame.BackgroundTransparency = 0.1
+    Frame.Position = UDim2.new(0.5, -110, 0.85, -100)
+    Frame.BackgroundColor3 = Color3.fromRGB(10, 10, 25)
+    Frame.BackgroundTransparency = 0.05
     Frame.BorderSizePixel = 0
     Frame.ClipsDescendants = true
     Frame.Parent = MainGui
@@ -311,8 +310,8 @@ local function CreateUI()
     
     local TitleBar = Instance.new("Frame")
     TitleBar.Size = UDim2.new(1, 0, 0, 28)
-    TitleBar.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-    TitleBar.BackgroundTransparency = 0.2
+    TitleBar.BackgroundColor3 = Color3.fromRGB(0, 120, 220)
+    TitleBar.BackgroundTransparency = 0.15
     TitleBar.BorderSizePixel = 0
     TitleBar.Parent = Frame
     
@@ -369,7 +368,7 @@ local function CreateUI()
     local ToggleBtn = Instance.new("TextButton")
     ToggleBtn.Size = UDim2.new(0.8, 0, 0, 30)
     ToggleBtn.Position = UDim2.new(0.1, 0, 0, 58)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     ToggleBtn.Text = "▶ تشغيل التتبع"
     ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
     ToggleBtn.TextScaled = true
@@ -381,10 +380,44 @@ local function CreateUI()
     ToggleCorner.CornerRadius = UDim.new(0, 6)
     ToggleCorner.Parent = ToggleBtn
     
+    ToggleBtn.MouseButton1Click:Connect(function()
+        Settings.Enabled = not Settings.Enabled
+        
+        if Settings.Enabled then
+            ToggleBtn.Text = "⏹ إيقاف التتبع"
+            ToggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+            Status.Text = "✅ مفعل"
+            Status.TextColor3 = Color3.fromRGB(0, 255, 100)
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
+            StartTracking()
+            CreateCircle()
+        else
+            ToggleBtn.Text = "▶ تشغيل التتبع"
+            ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+            Status.Text = "❌ معطل"
+            Status.TextColor3 = Color3.fromRGB(255, 80, 80)
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            
+            if Connection then
+                Connection:Disconnect()
+                Connection = nil
+            end
+            if CircleGui then
+                CircleGui:Destroy()
+                CircleGui = nil
+            end
+            for _, BV in ipairs(workspace:GetDescendants()) do
+                if BV.Name == "TrackVelocity" then
+                    BV:Destroy()
+                end
+            end
+        end
+    end)
+    
     local ESPBtn = Instance.new("TextButton")
     ESPBtn.Size = UDim2.new(0.8, 0, 0, 28)
     ESPBtn.Position = UDim2.new(0.1, 0, 0, 93)
-    ESPBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    ESPBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     ESPBtn.Text = "👁️ تشغيل ESP"
     ESPBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
     ESPBtn.TextScaled = true
@@ -395,6 +428,22 @@ local function CreateUI()
     local ESPCorner = Instance.new("UICorner")
     ESPCorner.CornerRadius = UDim.new(0, 6)
     ESPCorner.Parent = ESPBtn
+    
+    ESPBtn.MouseButton1Click:Connect(function()
+        Settings.ESPEnabled = not Settings.ESPEnabled
+        
+        if Settings.ESPEnabled then
+            ESPBtn.Text = "👁️ إيقاف ESP"
+            ESPBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+            ESPBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 20)
+            StartESP()
+        else
+            ESPBtn.Text = "👁️ تشغيل ESP"
+            ESPBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
+            ESPBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            StopESP()
+        end
+    end)
     
     local RangeLabel = Instance.new("TextLabel")
     RangeLabel.Size = UDim2.new(0.4, 0, 0, 20)
@@ -435,59 +484,6 @@ local function CreateUI()
         RangeLabel.Text = "المدى: " .. math.floor(Clamped)
     end
     
-    local function ToggleTrack()
-        Settings.Enabled = not Settings.Enabled
-        
-        if Settings.Enabled then
-            ToggleBtn.Text = "⏹ إيقاف التتبع"
-            ToggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-            Status.Text = "✅ مفعل"
-            Status.TextColor3 = Color3.fromRGB(0, 255, 100)
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
-            StartTracking()
-            CreateCircle()
-        else
-            ToggleBtn.Text = "▶ تشغيل التتبع"
-            ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
-            Status.Text = "❌ معطل"
-            Status.TextColor3 = Color3.fromRGB(255, 80, 80)
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-            
-            if Connection then
-                Connection:Disconnect()
-                Connection = nil
-            end
-            if CircleGui then
-                CircleGui:Destroy()
-                CircleGui = nil
-            end
-            for _, BV in ipairs(workspace:GetDescendants()) do
-                if BV.Name == "TrackVelocity" then
-                    BV:Destroy()
-                end
-            end
-        end
-    end
-    
-    local function ToggleESP()
-        Settings.ESPEnabled = not Settings.ESPEnabled
-        
-        if Settings.ESPEnabled then
-            ESPBtn.Text = "👁️ إيقاف ESP"
-            ESPBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
-            ESPBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 20)
-            StartESP()
-        else
-            ESPBtn.Text = "👁️ تشغيل ESP"
-            ESPBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
-            ESPBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-            StopESP()
-        end
-    end
-    
-    ToggleBtn.MouseButton1Click:Connect(ToggleTrack)
-    ESPBtn.MouseButton1Click:Connect(ToggleESP)
-    
     local Dragging = false
     Mouse.Button1Down:Connect(function()
         local MousePos = Mouse.X
@@ -515,3 +511,4 @@ local function CreateUI()
 end
 
 CreateUI()
+print("تم تحميل بولت تراك")
