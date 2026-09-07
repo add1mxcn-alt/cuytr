@@ -1,662 +1,385 @@
--- ============================================
--- واجهة C4 - النسخة النهائية المستقرة
--- ============================================
-
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local guiService = game:GetService("GuiService")
-local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
--- =======================
--- إنشاء ScreenGui
--- =======================
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "C4_GUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
--- =======================
--- الألوان المتناسقة
--- =======================
-local colors = {
-    bg = Color3.fromRGB(20, 20, 30),
-    surface = Color3.fromRGB(30, 30, 45),
-    surfaceLight = Color3.fromRGB(40, 40, 58),
-    primary = Color3.fromRGB(220, 60, 90),
-    primaryDim = Color3.fromRGB(180, 40, 70),
-    text = Color3.fromRGB(235, 235, 245),
-    textDim = Color3.fromRGB(170, 170, 190),
-    border = Color3.fromRGB(55, 55, 75),
-    success = Color3.fromRGB(60, 210, 100),
-    danger = Color3.fromRGB(230, 70, 70),
-    gold = Color3.fromRGB(255, 200, 50),
+-- إعدادات الألوان والتصميم
+local Colors = {
+	Background = Color3.fromRGB(30, 30, 35),      -- خلفية داكنة
+	Sidebar = Color3.fromRGB(25, 25, 30),          -- الشريط الجانبي
+	Element = Color3.fromRGB(45, 45, 50),          -- عناصر الإدخال والأزرار
+	TextMain = Color3.fromRGB(255, 255, 255),      -- نص أبيض
+	TextDim = Color3.fromRGB(180, 180, 180),       -- نص رمادي
+	Accent = Color3.fromRGB(0, 162, 255),          -- لون التمييز (أزرق هادئ)
+	Success = Color3.fromRGB(46, 204, 113),        -- حالة التشغيل (أخضر)
+	Danger = Color3.fromRGB(231, 76, 60),          -- حالة الإيقاف (أحمر)
+	Hover = Color3.fromRGB(55, 55, 60)             -- عند مرور الماوس
 }
 
--- ============================================
--- PART 1: واجهة الترحيب
--- ============================================
-local welcomeFrame = Instance.new("Frame")
-welcomeFrame.Size = UDim2.new(0, 360, 0, 280)
-welcomeFrame.Position = UDim2.new(0.5, -180, 0.5, -140)
-welcomeFrame.BackgroundColor3 = colors.bg
-welcomeFrame.BorderSizePixel = 0
-welcomeFrame.ClipsDescendants = true
-welcomeFrame.Parent = screenGui
+-- إنشاء الشاشة الرئيسية
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ProInterface"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-local welcomeCorner = Instance.new("UICorner")
-welcomeCorner.CornerRadius = UDim.new(0, 20)
-welcomeCorner.Parent = welcomeFrame
+-- متغيرات التحكم
+local isGuiVisible = true
+local currentTargetData = nil
 
--- شعار C4 كبير
-local logoBig = Instance.new("TextLabel")
-logoBig.Size = UDim2.new(1, 0, 0, 70)
-logoBig.Position = UDim2.new(0, 0, 0.08, 0)
-logoBig.BackgroundTransparency = 1
-logoBig.Text = "⚡ C4 ⚡"
-logoBig.TextColor3 = colors.primary
-logoBig.TextScaled = true
-logoBig.Font = Enum.Font.GothamBold
-logoBig.Parent = welcomeFrame
+-- ======================================================================
+-- دوال مساعدة لإنشاء العناصر بسرعة وتنسيقها
+-- ======================================================================
 
--- خط فاصل
-local divWelcome = Instance.new("Frame")
-divWelcome.Size = UDim2.new(0.7, 0, 0, 2)
-divWelcome.Position = UDim2.new(0.15, 0, 0.32, 0)
-divWelcome.BackgroundColor3 = colors.border
-divWelcome.BorderSizePixel = 0
-divWelcome.Parent = welcomeFrame
-
--- اسم السكربت
-local scriptName = Instance.new("TextLabel")
-scriptName.Size = UDim2.new(1, -40, 0, 35)
-scriptName.Position = UDim2.new(0, 20, 0.38, 0)
-scriptName.BackgroundTransparency = 1
-scriptName.Text = "نظام التحكم المتقدم"
-scriptName.TextColor3 = colors.text
-scriptName.TextScaled = true
-scriptName.Font = Enum.Font.GothamBold
-scriptName.Parent = welcomeFrame
-
--- معلومات إضافية
-local infoWelcome = Instance.new("TextLabel")
-infoWelcome.Size = UDim2.new(1, -40, 0, 60)
-infoWelcome.Position = UDim2.new(0, 20, 0.5, 0)
-infoWelcome.BackgroundTransparency = 1
-infoWelcome.Text = "نسخة 2.0\nجميع الحقوق محفوظة © 2026"
-infoWelcome.TextColor3 = colors.textDim
-infoWelcome.TextScaled = true
-infoWelcome.Font = Enum.Font.Gotham
-infoWelcome.TextXAlignment = Enum.TextXAlignment.Center
-infoWelcome.Parent = welcomeFrame
-
--- أيقونة
-local iconWelcome = Instance.new("TextLabel")
-iconWelcome.Size = UDim2.new(0, 50, 0, 50)
-iconWelcome.Position = UDim2.new(0.5, -25, 0.75, 0)
-iconWelcome.BackgroundTransparency = 1
-iconWelcome.Text = "🚀"
-iconWelcome.TextScaled = true
-iconWelcome.Parent = welcomeFrame
-
--- نص "جاري التحميل"
-local loadingText = Instance.new("TextLabel")
-loadingText.Size = UDim2.new(1, 0, 0, 25)
-loadingText.Position = UDim2.new(0, 0, 0.92, 0)
-loadingText.BackgroundTransparency = 1
-loadingText.Text = "جاري التحميل..."
-loadingText.TextColor3 = colors.textDim
-loadingText.TextScaled = true
-loadingText.Font = Enum.Font.Gotham
-loadingText.Parent = welcomeFrame
-
--- ============================================
--- PART 2: الواجهة الرئيسية (مربعة)
--- ============================================
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 400, 0, 460)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -230)
-mainFrame.BackgroundColor3 = colors.bg
-mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.Visible = false
-mainFrame.Parent = screenGui
-
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 16)
-mainCorner.Parent = mainFrame
-
--- ============================================
--- PART 3: الهيدر مع زر الإخفاء
--- ============================================
-local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 45)
-header.BackgroundColor3 = colors.surface
-header.BorderSizePixel = 0
-header.Parent = mainFrame
-
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 16)
-headerCorner.Parent = header
-
--- عنوان الهيدر
-local headerTitle = Instance.new("TextLabel")
-headerTitle.Size = UDim2.new(1, -50, 1, 0)
-headerTitle.Position = UDim2.new(0, 15, 0, 0)
-headerTitle.BackgroundTransparency = 1
-headerTitle.Text = "⚡ C4"
-headerTitle.TextColor3 = colors.primary
-headerTitle.TextScaled = true
-headerTitle.Font = Enum.Font.GothamBold
-headerTitle.TextXAlignment = Enum.TextXAlignment.Left
-headerTitle.Parent = header
-
--- زر الإخفاء
-local hideBtn = Instance.new("TextButton")
-hideBtn.Size = UDim2.new(0, 30, 0, 30)
-hideBtn.Position = UDim2.new(1, -40, 0.5, -15)
-hideBtn.BackgroundColor3 = colors.surfaceLight
-hideBtn.Text = "✕"
-hideBtn.TextColor3 = colors.textDim
-hideBtn.TextScaled = true
-hideBtn.Font = Enum.Font.Gotham
-hideBtn.BorderSizePixel = 0
-hideBtn.Parent = header
-
-local hideCorner = Instance.new("UICorner")
-hideCorner.CornerRadius = UDim.new(0, 8)
-hideCorner.Parent = hideBtn
-
--- ============================================
--- PART 4: الزر العائم للإظهار
--- ============================================
-local floatBtn = Instance.new("TextButton")
-floatBtn.Size = UDim2.new(0, 48, 0, 48)
-floatBtn.Position = UDim2.new(0.02, 0, 0.85, 0)
-floatBtn.BackgroundColor3 = colors.primary
-floatBtn.Text = "⚡"
-floatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-floatBtn.TextScaled = true
-floatBtn.Font = Enum.Font.GothamBold
-floatBtn.BorderSizePixel = 0
-floatBtn.Visible = false
-floatBtn.Parent = screenGui
-
-local floatCorner = Instance.new("UICorner")
-floatCorner.CornerRadius = UDim.new(1, 0)
-floatCorner.Parent = floatBtn
-
--- ============================================
--- PART 5: Tabs على الجانب
--- ============================================
-local tabPanel = Instance.new("Frame")
-tabPanel.Size = UDim2.new(0, 95, 1, -45)
-tabPanel.Position = UDim2.new(0, 0, 0, 45)
-tabPanel.BackgroundColor3 = colors.surface
-tabPanel.BorderSizePixel = 0
-tabPanel.Parent = mainFrame
-
--- ============================================
--- PART 6: محتوى الأقسام
--- ============================================
-local contentArea = Instance.new("Frame")
-contentArea.Size = UDim2.new(1, -105, 1, -55)
-contentArea.Position = UDim2.new(0, 100, 0, 50)
-contentArea.BackgroundTransparency = 1
-contentArea.Parent = mainFrame
-
--- =======================
--- TAB 1: الحقوق
--- =======================
-local rightsTab = Instance.new("Frame")
-rightsTab.Size = UDim2.new(1, 0, 1, 0)
-rightsTab.BackgroundTransparency = 1
-rightsTab.Parent = contentArea
-
-local rightsTitle = Instance.new("TextLabel")
-rightsTitle.Size = UDim2.new(1, 0, 0, 35)
-rightsTitle.BackgroundTransparency = 1
-rightsTitle.Text = "📜 الحقوق"
-rightsTitle.TextColor3 = colors.text
-rightsTitle.TextScaled = true
-rightsTitle.Font = Enum.Font.GothamBold
-rightsTitle.Parent = rightsTab
-
-local rightsLine = Instance.new("Frame")
-rightsLine.Size = UDim2.new(0.9, 0, 0, 2)
-rightsLine.Position = UDim2.new(0.05, 0, 0.12, 0)
-rightsLine.BackgroundColor3 = colors.border
-rightsLine.BorderSizePixel = 0
-rightsLine.Parent = rightsTab
-
-local rightsContent = Instance.new("TextLabel")
-rightsContent.Size = UDim2.new(0.9, 0, 0, 80)
-rightsContent.Position = UDim2.new(0.05, 0, 0.2, 0)
-rightsContent.BackgroundTransparency = 1
-rightsContent.Text = "جميع الحقوق محفوظة\nلـ فريق C4\n© 2026"
-rightsContent.TextColor3 = colors.textDim
-rightsContent.TextScaled = true
-rightsContent.Font = Enum.Font.Gotham
-rightsContent.TextXAlignment = Enum.TextXAlignment.Center
-rightsContent.Parent = rightsTab
-
-local rightsIcon = Instance.new("TextLabel")
-rightsIcon.Size = UDim2.new(0, 60, 0, 60)
-rightsIcon.Position = UDim2.new(0.5, -30, 0.5, 0)
-rightsIcon.BackgroundTransparency = 1
-rightsIcon.Text = "🔒"
-rightsIcon.TextScaled = true
-rightsIcon.Parent = rightsTab
-
--- =======================
--- TAB 2: الاستهداف
--- =======================
-local targetTab = Instance.new("Frame")
-targetTab.Size = UDim2.new(1, 0, 1, 0)
-targetTab.BackgroundTransparency = 1
-targetTab.Visible = false
-targetTab.Parent = contentArea
-
-local targetTitle = Instance.new("TextLabel")
-targetTitle.Size = UDim2.new(1, 0, 0, 30)
-targetTitle.BackgroundTransparency = 1
-targetTitle.Text = "🎯 الاستهداف"
-targetTitle.TextColor3 = colors.text
-targetTitle.TextScaled = true
-targetTitle.Font = Enum.Font.GothamBold
-targetTitle.Parent = targetTab
-
-local targetLine = Instance.new("Frame")
-targetLine.Size = UDim2.new(0.9, 0, 0, 2)
-targetLine.Position = UDim2.new(0.05, 0, 0.1, 0)
-targetLine.BackgroundColor3 = colors.border
-targetLine.BorderSizePixel = 0
-targetLine.Parent = targetTab
-
--- ===== صورة اللاعب =====
-local imgContainer = Instance.new("Frame")
-imgContainer.Size = UDim2.new(0, 75, 0, 75)
-imgContainer.Position = UDim2.new(0.03, 0, 0.14, 0)
-imgContainer.BackgroundColor3 = colors.surface
-imgContainer.BorderSizePixel = 0
-imgContainer.Parent = targetTab
-
-local imgCorner = Instance.new("UICorner")
-imgCorner.CornerRadius = UDim.new(0, 12)
-imgCorner.Parent = imgContainer
-
-local playerImage = Instance.new("ImageLabel")
-playerImage.Size = UDim2.new(1, -4, 1, -4)
-playerImage.Position = UDim2.new(0, 2, 0, 2)
-playerImage.BackgroundColor3 = colors.surface
-playerImage.Image = ""
-playerImage.ScaleType = Enum.ScaleType.Fit
-playerImage.Parent = imgContainer
-
-local defaultAvatar = Instance.new("TextLabel")
-defaultAvatar.Size = UDim2.new(1, 0, 1, 0)
-defaultAvatar.BackgroundTransparency = 1
-defaultAvatar.Text = "👤"
-defaultAvatar.TextScaled = true
-defaultAvatar.Parent = imgContainer
-
--- ===== حقل البحث (بدون زر) =====
-local inputContainer = Instance.new("Frame")
-inputContainer.Size = UDim2.new(0, 195, 0, 35)
-inputContainer.Position = UDim2.new(0.28, 0, 0.14, 0)
-inputContainer.BackgroundColor3 = colors.surface
-inputContainer.BorderSizePixel = 0
-inputContainer.Parent = targetTab
-
-local inputCorner = Instance.new("UICorner")
-inputCorner.CornerRadius = UDim.new(0, 8)
-inputCorner.Parent = inputContainer
-
-local searchBox = Instance.new("TextBox")
-searchBox.Size = UDim2.new(1, -12, 1, 0)
-searchBox.Position = UDim2.new(0, 6, 0, 0)
-searchBox.BackgroundTransparency = 1
-searchBox.PlaceholderText = "اكتب اسم اللاعب..."
-searchBox.PlaceholderColor3 = colors.textDim
-searchBox.Text = ""
-searchBox.TextColor3 = colors.text
-searchBox.TextScaled = true
-searchBox.Font = Enum.Font.Gotham
-searchBox.ClearTextOnFocus = false
-searchBox.Parent = inputContainer
-
--- ===== حالة البحث =====
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(0.9, 0, 0, 22)
-statusLabel.Position = UDim2.new(0.05, 0, 0.32, 0)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "🔍 اكتب اسم لاعب للبحث"
-statusLabel.TextColor3 = colors.textDim
-statusLabel.TextScaled = true
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextXAlignment = Enum.TextXAlignment.Center
-statusLabel.Parent = targetTab
-
--- ===== معلومات اللاعب =====
-local infoContainer = Instance.new("Frame")
-infoContainer.Size = UDim2.new(0.9, 0, 0, 38)
-infoContainer.Position = UDim2.new(0.05, 0, 0.38, 0)
-infoContainer.BackgroundColor3 = colors.surface
-infoContainer.BorderSizePixel = 0
-infoContainer.Parent = targetTab
-
-local infoCorner = Instance.new("UICorner")
-infoCorner.CornerRadius = UDim.new(0, 8)
-infoCorner.Parent = infoContainer
-
-local infoText = Instance.new("TextLabel")
-infoText.Size = UDim2.new(1, -10, 1, 0)
-infoText.Position = UDim2.new(0, 5, 0, 0)
-infoText.BackgroundTransparency = 1
-infoText.Text = "👤 انتظر البحث..."
-infoText.TextColor3 = colors.textDim
-infoText.TextScaled = true
-infoText.Font = Enum.Font.Gotham
-infoText.TextXAlignment = Enum.TextXAlignment.Left
-infoText.Parent = infoContainer
-
--- ===== أزرار التفعيل =====
-local btnContainer = Instance.new("Frame")
-btnContainer.Size = UDim2.new(0.9, 0, 0, 100)
-btnContainer.Position = UDim2.new(0.05, 0, 0.48, 0)
-btnContainer.BackgroundTransparency = 1
-btnContainer.Parent = targetTab
-
--- دالة إنشاء زر تفعيل
-local function createToggle(parent, x, y, w, label)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, w, 0, 28)
-    frame.Position = UDim2.new(0, x, 0, y)
-    frame.BackgroundColor3 = colors.surface
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-    
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(0.55, -5, 1, 0)
-    text.Position = UDim2.new(0, 5, 0, 0)
-    text.BackgroundTransparency = 1
-    text.Text = label
-    text.TextColor3 = colors.text
-    text.TextScaled = true
-    text.Font = Enum.Font.Gotham
-    text.TextXAlignment = Enum.TextXAlignment.Left
-    text.Parent = frame
-    
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 42, 0, 20)
-    btn.Position = UDim2.new(0.6, 0, 0.5, -10)
-    btn.BackgroundColor3 = colors.danger
-    btn.Text = "OFF"
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextScaled = true
-    btn.Font = Enum.Font.GothamBold
-    btn.BorderSizePixel = 0
-    btn.Parent = frame
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 4)
-    btnCorner.Parent = btn
-    
-    local state = false
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.BackgroundColor3 = state and colors.success or colors.danger
-        btn.Text = state and "ON" or "OFF"
-    end)
-    
-    return {btn = btn, frame = frame, state = function() return state end}
+local function CreateFrame(parent, size, pos, color, cornerRadius)
+	local frame = Instance.new("Frame")
+	frame.Size = size
+	frame.Position = pos
+	frame.BackgroundColor3 = color
+	frame.BorderSizePixel = 0
+	frame.Parent = parent
+	
+	if cornerRadius then
+		local uiCorner = Instance.new("UICorner")
+		uiCorner.CornerRadius = UDim.new(0, cornerRadius)
+		uiCorner.Parent = frame
+	end
+	return frame
 end
 
--- إنشاء الأزرار (شبكي 2×2)
-local btnFly = createToggle(btnContainer, 0, 0, 115, "🚀 طيران")
-local btnSpeed = createToggle(btnContainer, 125, 0, 115, "💨 سرعة")
-local btnShield = createToggle(btnContainer, 0, 34, 115, "🛡️ حماية")
-local btnVision = createToggle(btnContainer, 125, 34, 115, "👁️ رؤية")
-
--- ===== زر المشاهدة (View) =====
-local viewContainer = Instance.new("Frame")
-viewContainer.Size = UDim2.new(0, 115, 0, 28)
-viewContainer.Position = UDim2.new(0.05, 0, 0.7, 0)
-viewContainer.BackgroundColor3 = colors.surface
-viewContainer.BorderSizePixel = 0
-viewContainer.Parent = targetTab
-
-local viewCorner = Instance.new("UICorner")
-viewCorner.CornerRadius = UDim.new(0, 6)
-viewCorner.Parent = viewContainer
-
-local viewLabel = Instance.new("TextLabel")
-viewLabel.Size = UDim2.new(0.55, -5, 1, 0)
-viewLabel.Position = UDim2.new(0, 5, 0, 0)
-viewLabel.BackgroundTransparency = 1
-viewLabel.Text = "👁️ مشاهدة"
-viewLabel.TextColor3 = colors.text
-viewLabel.TextScaled = true
-viewLabel.Font = Enum.Font.Gotham
-viewLabel.TextXAlignment = Enum.TextXAlignment.Left
-viewLabel.Parent = viewContainer
-
-local viewBtn = Instance.new("TextButton")
-viewBtn.Size = UDim2.new(0, 42, 0, 20)
-viewBtn.Position = UDim2.new(0.6, 0, 0.5, -10)
-viewBtn.BackgroundColor3 = colors.danger
-viewBtn.Text = "OFF"
-viewBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-viewBtn.TextScaled = true
-viewBtn.Font = Enum.Font.GothamBold
-viewBtn.BorderSizePixel = 0
-viewBtn.Parent = viewContainer
-
-local viewCorner2 = Instance.new("UICorner")
-viewCorner2.CornerRadius = UDim.new(0, 4)
-viewCorner2.Parent = viewBtn
-
-local viewState = false
-viewBtn.MouseButton1Click:Connect(function()
-    viewState = not viewState
-    viewBtn.BackgroundColor3 = viewState and colors.success or colors.danger
-    viewBtn.Text = viewState and "ON" or "OFF"
-    if viewState and selectedPlayer then
-        print("👁️ مشاهدة اللاعب: " .. selectedPlayer.Name)
-    elseif viewState then
-        print("⚠️ لا يوجد لاعب مستهدف")
-        viewState = false
-        viewBtn.BackgroundColor3 = colors.danger
-        viewBtn.Text = "OFF"
-    end
-end)
-
--- ============================================
--- PART 7: أزرار التبويبات
--- ============================================
-local selectedPlayer = nil
-local searchTimer = nil
-
-local function createTabButton(name, icon, tab, yPos)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 42)
-    btn.Position = UDim2.new(0.05, 0, 0, yPos)
-    btn.BackgroundColor3 = colors.surfaceLight
-    btn.Text = icon .. " " .. name
-    btn.TextColor3 = colors.textDim
-    btn.TextScaled = true
-    btn.Font = Enum.Font.GothamBold
-    btn.BorderSizePixel = 0
-    btn.Parent = tabPanel
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
-    
-    local indicator = Instance.new("Frame")
-    indicator.Size = UDim2.new(0, 3, 0.6, 0)
-    indicator.Position = UDim2.new(0.02, 0, 0.2, 0)
-    indicator.BackgroundColor3 = colors.primary
-    indicator.BorderSizePixel = 0
-    indicator.Visible = false
-    indicator.Name = "Indicator"
-    indicator.Parent = btn
-    
-    btn.MouseButton1Click:Connect(function()
-        rightsTab.Visible = false
-        targetTab.Visible = false
-        tab.Visible = true
-        
-        for _, child in pairs(tabPanel:GetChildren()) do
-            if child:IsA("TextButton") then
-                local ind = child:FindFirstChild("Indicator")
-                if ind then ind.Visible = false end
-                child.BackgroundColor3 = colors.surfaceLight
-                child.TextColor3 = colors.textDim
-            end
-        end
-        
-        indicator.Visible = true
-        btn.BackgroundColor3 = colors.surface
-        btn.TextColor3 = colors.text
-    end)
-    
-    return btn
+local function CreateTextLabel(parent, text, size, pos, textColor, textSize, align)
+	local label = Instance.new("TextLabel")
+	label.Size = size
+	label.Position = pos
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = textColor or Colors.TextMain
+	label.TextSize = textSize or 14
+	label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
+	label.TextXAlignment = align or Enum.TextXAlignment.Left
+	label.Parent = parent
+	return label
 end
 
--- إنشاء أزرار التبويبات
-local rightsBtn = createTabButton("الحقوق", "⚖️", rightsTab, 0.12)
-local targetBtn = createTabButton("الاستهداف", "🎯", targetTab, 0.28)
-
--- تفعيل تبويب الحقوق افتراضياً
-rightsBtn.MouseButton1Click:Fire()
-
--- ============================================
--- PART 8: وظائف البحث التلقائي
--- ============================================
-local function findPlayer(input)
-    if input == "" or input == nil then return nil end
-    local lower = string.lower(input)
-    local matches = {}
-    
-    for _, plr in pairs(Players:GetPlayers()) do
-        local nameLower = string.lower(plr.Name)
-        if string.sub(nameLower, 1, #lower) == lower then
-            table.insert(matches, plr)
-        end
-    end
-    
-    if #matches == 0 then return nil end
-    if #matches == 1 then return matches[1] end
-    
-    -- إذا كان هناك أكثر من تطابق، اختر الأقصر (الأكثر دقة)
-    table.sort(matches, function(a, b) return #a.Name < #b.Name end)
-    return matches[1]
+local function CreateTextBox(parent, placeholder, size, pos)
+	local box = Instance.new("TextBox")
+	box.Size = size
+	box.Position = pos
+	box.BackgroundColor3 = Colors.Element
+	box.BorderSizePixel = 0
+	box.PlaceholderText = placeholder
+	box.PlaceholderColor3 = Colors.TextDim
+	box.TextColor3 = Colors.TextMain
+	box.TextSize = 14
+	box.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
+	box.ClearTextOnFocus = false
+	
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, 10)
+	padding.Parent = box
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = box
+	
+	box.Parent = parent
+	return box
 end
 
-local function updateTarget(player)
-    if player then
-        selectedPlayer = player
-        playerImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. player.UserId .. "&w=150&h=150"
-        defaultAvatar.Visible = false
-        infoText.Text = "👤 " .. player.Name .. " | 🆔 " .. player.UserId
-        statusLabel.Text = "✅ تم العثور على: " .. player.Name
-        statusLabel.TextColor3 = colors.success
-        
-        -- إعادة ضبط حالة View إذا كان مفعلاً
-        if viewState then
-            print("👁️ تحديث المشاهدة إلى: " .. player.Name)
-        end
-    else
-        selectedPlayer = nil
-        playerImage.Image = ""
-        defaultAvatar.Visible = true
-        infoText.Text = "👤 لا يوجد لاعب"
-        statusLabel.Text = "❌ لم يتم العثور على لاعب"
-        statusLabel.TextColor3 = colors.danger
-        
-        -- إيقاف View إذا كان مفعلاً
-        if viewState then
-            viewState = false
-            viewBtn.BackgroundColor3 = colors.danger
-            viewBtn.Text = "OFF"
-        end
-    end
+local function CreateImageButton(parent, iconOrText, size, pos, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = size
+	btn.Position = pos
+	btn.BackgroundColor3 = Colors.Element
+	btn.Text = iconOrText
+	btn.TextColor3 = Colors.TextMain
+	btn.TextSize = 16
+	btn.AutoButtonColor = false
+	btn.Parent = parent
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = btn
+	
+	-- تأثير عند الضغط
+	btn.MouseButton1Click:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Colors.Hover}):Play()
+		task.wait(0.1)
+		TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Colors.Element}):Play()
+		if callback then callback() end
+	end)
+	
+	return btn
 end
 
--- البحث التلقائي عند الكتابة
-searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    local text = searchBox.Text
-    if #text >= 1 then
-        -- تأخير بسيط لتجنب البحث المفرط
-        if searchTimer then
-            searchTimer:Disconnect()
-        end
-        searchTimer = RunService.Heartbeat:Connect(function()
-            searchTimer:Disconnect()
-            searchTimer = nil
-            local found = findPlayer(text)
-            updateTarget(found)
-        end)
-        task.wait(0.3) -- تأخير 0.3 ثانية
-        if searchTimer then
-            searchTimer:Disconnect()
-            searchTimer = nil
-            local found = findPlayer(text)
-            updateTarget(found)
-        end
-    else
-        -- إذا كان الحقل فارغاً
-        selectedPlayer = nil
-        playerImage.Image = ""
-        defaultAvatar.Visible = true
-        infoText.Text = "👤 انتظر البحث..."
-        statusLabel.Text = "🔍 اكتب اسم لاعب للبحث"
-        statusLabel.TextColor3 = colors.textDim
-    end
+-- ======================================================================
+-- بناء الواجهة الرئيسية
+-- ======================================================================
+
+-- الحاوية الرئيسية (أكبر قليلاً كما طلبت)
+local MainContainer = CreateFrame(ScreenGui, UDim2.new(0, 800, 0, 550), UDim2.new(0.5, -400, 0.5, -275), Colors.Background, 12)
+
+-- زر الإغلاق/التصغير (في الزاوية العلوية)
+local MinimizeBtn = CreateImageButton(MainContainer, "_", UDim2.new(0, 30, 0, 30), UDim2.new(1, -40, 0, 10), function()
+	isGuiVisible = false
+	MainContainer.Visible = false
+	MinimizedButton.Visible = true
+end)
+MinimizeBtn.TextSize = 20
+MinimizeBtn.Font = Enum.Font.GothamBold
+
+-- الشريط الجانبي (Sidebar)
+local Sidebar = CreateFrame(MainContainer, UDim2.new(0, 200, 1, 0), UDim2.new(0, 0, 0, 0), Colors.Sidebar, 0)
+-- إزالة الزاوية من اليسار للشريط ليبدو متصلاً
+Sidebar.UICorner:Destroy() 
+local sidebarCorner = Instance.new("UICorner")
+sidebarCorner.CornerRadius = UDim.new(0, 12)
+sidebarCorner.Parent = Sidebar
+
+-- عنوان الشريط الجانبي
+CreateTextLabel(Sidebar, "MENU", UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, 0), Colors.Accent, 18, Enum.TextXAlignment.Center).Font = Enum.Font.GothamBold
+
+-- قائمة التبويبات (Tabs)
+local TabList = {"Targeting", "Visuals", "Aimbot", "Settings"}
+local TabButtons = {}
+local TabPages = {}
+
+-- حاوية محتوى التبويبات (على اليمين)
+local ContentArea = CreateFrame(MainContainer, UDim2.new(1, -210, 1, -50), UDim2.new(0, 210, 0, 40), Color3.fromRGB(0,0,0), 0)
+ContentArea.BackgroundTransparency = 1
+
+-- دالة لإنشاء تبويب
+local function CreateTab(tabName, index)
+	-- زر التبويب في الشريط الجانبي
+	local btnY = 50 + (index * 45)
+	local tabBtn = CreateImageButton(Sidebar, tabName, UDim2.new(1, -20, 0, 40), UDim2.new(0, 10, 0, btnY), function()
+		-- تفعيل التبويب
+		for _, page in pairs(TabPages) do page.Visible = false end
+		TabPages[tabName].Visible = true
+		
+		-- تلوين الزر النشط
+		for _, b in pairs(TabButtons) do b.BackgroundColor3 = Colors.Element; b.TextColor3 = Colors.TextDim end
+		tabBtn.BackgroundColor3 = Colors.Element -- يمكن تغييرها للون مميز
+		tabBtn.TextColor3 = Colors.Accent
+	end)
+	tabBtn.TextXAlignment = Enum.TextXAlignment.Left
+	local padding = Instance.new("UIPadding"); padding.PaddingLeft = UDim.new(0, 20); padding.Parent = tabBtn
+	TabButtons[tabName] = btnY and tabBtn or nil -- تخزين مرجع بسيط
+	
+	-- صفحة المحتوى الخاصة بالتبويب
+	local page = CreateFrame(ContentArea, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), Color3.fromRGB(255,255,255), 8)
+	page.BackgroundTransparency = 1
+	page.Visible = false
+	TabPages[tabName] = page
+	
+	return page
+end
+
+-- إنشاء التبويبات
+local TargetingPage = CreateTab("Targeting", 1)
+CreateTab("Visuals", 2)
+CreateTab("Aimbot", 3)
+CreateTab("Settings", 4)
+
+-- تفعيل التبويب الأول افتراضياً
+TabPages["Targeting"].Visible = true
+if TabButtons["Targeting"] then TabButtons["Targeting"].TextColor3 = Colors.Accent end
+
+
+-- ======================================================================
+-- تصميم قسم الاستهداف (Targeting Section)
+-- ======================================================================
+
+-- 1. مربع البحث والصورة
+local SearchBox = CreateTextBox(TargetingPage, "Enter Player Name...", UDim2.new(1, -20, 0, 40), UDim2.new(0, 10, 0, 10))
+
+-- حاوية عرض اللاعب (الصورة + الاسم المكتشف)
+local PlayerDisplay = CreateFrame(TargetingPage, UDim2.new(1, -20, 0, 120), UDim2.new(0, 10, 0, 60), Colors.Element, 8)
+
+-- صورة اللاعب (Headshot)
+local HeadshotImage = Instance.new("ImageLabel")
+HeadshotImage.Size = UDim2.new(0, 100, 0, 100)
+HeadshotImage.Position = UDim2.new(0, 10, 0, 10)
+HeadshotImage.BackgroundTransparency = 1
+HeadshotImage.Image = "rbxassetid://0" -- صورة افتراضية فارغة أو أيقونة
+HeadshotImage.ScaleType = Enum.ScaleType.Crop
+HeadshotImage.Parent = PlayerDisplay
+local imgCorner = Instance.new("UICorner"); imgCorner.CornerRadius = UDim.new(1, 0); imgCorner.Parent = HeadshotImage
+
+-- معلومات اللاعب النصية
+local PlayerNameLabel = CreateTextLabel(PlayerDisplay, "No Player Selected", UDim2.new(1, -130, 0, 30), UDim2.new(0, 120, 0, 10), Colors.TextMain, 18, Enum.TextXAlignment.Left)
+PlayerNameLabel.Font = Enum.Font.GothamBold
+
+local PlayerStatus = CreateTextLabel(PlayerDisplay, "Waiting for input...", UDim2.new(1, -130, 0, 20), UDim2.new(0, 120, 0, 45), Colors.TextDim, 12, Enum.TextXAlignment.Left)
+
+-- 2. منطق البحث (Simulation)
+-- ملاحظة: في السكربت الحقيقي ستحتاج لاستخدام HttpService أو Module خاص للبحث
+SearchBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		local query = SearchBox.Text
+		if #query < 2 then return end
+		
+		PlayerStatus.Text = "Searching..."
+		
+		-- محاكاة بحث (استبدل هذا بالكود الحقيقي الخاص بك)
+		task.spawn(function()
+			task.wait(0.5) -- تأخير بسيط للمحاكاة
+			
+			-- مثال: البحث في السيرفر الحالي
+			local foundPlayer = nil
+			for _, p in ipairs(Players:GetPlayers()) do
+				if string.find(string.lower(p.Name), string.lower(query)) or string.find(string.lower(p.DisplayName), string.lower(query)) then
+					foundPlayer = p
+					break
+				end
+			end
+			
+			if foundPlayer then
+				currentTargetData = foundPlayer
+				PlayerNameLabel.Text = foundPlayer.Name
+				PlayerStatus.Text = "Target Locked"
+				PlayerStatus.TextColor3 = Colors.Success
+				
+				-- جلب الصورة الحقيقية
+				local thumbType = Enum.ThumbnailType.HeadShot
+				local thumbSize = Enum.ThumbnailSize.Size420x420
+				local content, isReady = Players:GetUserThumbnailAsync(foundPlayer.UserId, thumbType, thumbSize)
+				HeadshotImage.Image = content
+			else
+				currentTargetData = nil
+				PlayerNameLabel.Text = "Not Found"
+				PlayerStatus.Text = "Player Not Found"
+				PlayerStatus.TextColor3 = Colors.Danger
+				HeadshotImage.Image = "rbxassetid://0" -- أيقونة خطأ
+			end
+		end)
+	end
 end)
 
--- ============================================
--- PART 9: وظائف الإخفاء والإظهار
--- ============================================
-hideBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = false
-    floatBtn.Visible = true
+-- ======================================================================
+-- أزرار التفعيل (Toggles Grid)
+-- ======================================================================
+
+local TogglesContainer = CreateFrame(TargetingPage, UDim2.new(1, -20, 0, 250), UDim2.new(0, 10, 0, 190), Color3.fromRGB(0,0,0), 0)
+TogglesContainer.BackgroundTransparency = 1
+
+-- دالة لإنشاء زر تبديل (Toggle Button)
+local function CreateToggle(parent, name, yPos)
+	local toggleFrame = CreateFrame(parent, UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, yPos), Colors.Element, 6)
+	
+	local label = CreateTextLabel(toggleFrame, name, UDim2.new(1, -60, 1, 0), UDim2.new(0, 10, 0, 0), Colors.TextMain, 14, Enum.TextXAlignment.Left)
+	
+	-- مؤشر الحالة (ON/OFF)
+	local statusIndicator = Instance.new("TextLabel")
+	statusIndicator.Size = UDim2.new(0, 50, 0, 25)
+	statusIndicator.Position = UDim2.new(1, -55, 0.5, -12.5)
+	statusIndicator.BackgroundTransparency = 1
+	statusIndicator.Text = "OFF"
+	statusIndicator.TextColor3 = Colors.Danger
+	statusIndicator.Font = Enum.Font.GothamBold
+	statusIndicator.TextSize = 12
+	statusIndicator.Parent = toggleFrame
+	
+	local isActive = false
+	
+	toggleFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			isActive = not isActive
+			
+			if isActive then
+				statusIndicator.Text = "ON"
+				statusIndicator.TextColor3 = Colors.Success
+				toggleFrame.BackgroundColor3 = Color3.fromRGB(35, 50, 35) -- تلميح أخضر خفيف
+			else
+				statusIndicator.Text = "OFF"
+				statusIndicator.TextColor3 = Colors.Danger
+				toggleFrame.BackgroundColor3 = Colors.Element
+			end
+			
+			-- هنا تضع كود التفعيل الفعلي
+			print(name .. " set to " .. tostring(isActive))
+		end
+	end)
+end
+
+-- إنشاء الأزرار المطلوبة
+CreateToggle(TogglesContainer, "Silent Aim", 0)
+CreateToggle(TogglesContainer, "Auto Lock", 45)
+CreateToggle(TogglesContainer, "Prediction", 90)
+
+-- زر المشاهدة (View Button) المميز
+local ViewBtnFrame = CreateFrame(TargetingPage, UDim2.new(1, -20, 0, 50), UDim2.new(0, 10, 1, -60), Colors.Element, 8)
+local ViewBtn = CreateImageButton(ViewBtnFrame, "👁️ VIEW TARGET", UDim2.new(1, -20, 1, -10), UDim2.new(0, 10, 0, 5), function()
+	if currentTargetData then
+		print("Viewing player: " .. currentTargetData.Name)
+		-- كود الكاميرا أو Spectate هنا
+	else
+		warn("No target selected to view!")
+	end
+end)
+ViewBtn.TextSize = 16
+ViewBtn.Font = Enum.Font.GothamBold
+ViewBtn.TextColor3 = Colors.Accent
+
+
+-- ======================================================================
+-- زر الإظهار العائم (Floating Restore Button)
+-- ======================================================================
+
+local MinimizedButton = Instance.new("TextButton")
+MinimizedButton.Name = "RestoreBtn"
+MinimizedButton.Size = UDim2.new(0, 50, 0, 50)
+MinimizedButton.Position = UDim2.new(0, 20, 0.5, -25) -- جانب الشاشة
+MinimizedButton.BackgroundColor3 = Colors.Accent
+MinimizedButton.Text = "⚙️"
+MinimizedButton.TextSize = 24
+MinimizedButton.TextColor3 = Color3.new(1,1,1)
+MinimizedButton.Visible = false
+MinimizedButton.AutoButtonColor = false
+MinimizedButton.Parent = ScreenGui
+
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(1, 0) -- دائرة كاملة
+miniCorner.Parent = MinimizedButton
+
+MinimizedButton.MouseButton1Click:Connect(function()
+	isGuiVisible = true
+	MainContainer.Visible = true
+	MinimizedButton.Visible = false
+	
+	-- تأثير ظهور ناعم
+	MainContainer.Position = UDim2.new(0.5, -400, 0.5, -300) -- البدء من الأعلى قليلاً
+	TweenService:Create(MainContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.5, -400, 0.5, -275)
+	}):Play()
 end)
 
-floatBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = true
-    floatBtn.Visible = false
+-- جعل الواجهة قابلة للسحب (Draggable) بشكل بسيط
+local dragging = false
+local dragInput, mousePos, framePos
+
+MainContainer.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		mousePos = input.Position
+		framePos = MainContainer.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
 end)
 
--- ============================================
--- PART 10: الانتقال من الترحيب للواجهة
--- ============================================
-task.wait(2.5)
-
-welcomeFrame:TweenSizeAndPosition(
-    UDim2.new(0, 0, 0, 0),
-    UDim2.new(0.5, 0, 0.5, 0),
-    Enum.EasingDirection.In,
-    Enum.EasingStyle.Quad,
-    0.4,
-    true
-)
-task.wait(0.4)
-welcomeFrame.Visible = false
-
-mainFrame.Visible = true
-mainFrame:TweenSizeAndPosition(
-    UDim2.new(0, 400, 0, 460),
-    UDim2.new(0.5, -200, 0.5, -230),
-    Enum.EasingDirection.Out,
-    Enum.EasingStyle.Elastic,
-    0.6,
-    true
-)
-
-guiService:SetGuiInset(0, 0)
-print("✅ C4 GUI Loaded Successfully!")
+MainContainer.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+		local delta = input.Position - mousePos
+		MainContainer.Position = UDim2.new(
+			framePos.X.Scale, 
+			framePos.X.Offset + delta.X, 
+			framePos.Y.Scale, 
+			framePos.Y.Offset + delta.Y
+		)
+	end
+end)
