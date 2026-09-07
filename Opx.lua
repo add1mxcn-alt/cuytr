@@ -4,189 +4,225 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
 
--- تحميل صوت ناعم للضغط
+-- صوت الضغط
 local ClickSound = Instance.new("Sound")
-ClickSound.SoundId = "rbxassetid://9120381112" -- صوت نقر ناعم
-ClickSound.Volume = 0.3
+ClickSound.SoundId = "rbxassetid://9120381112"
+ClickSound.Volume = 0.25
 ClickSound.Parent = SoundService
 
--- إعدادات الألوان والتصميم (أكثر أناقة)
+-- الألوان
 local Colors = {
-	Background = Color3.fromRGB(18, 18, 22),
-	Sidebar = Color3.fromRGB(14, 14, 18),
-	Element = Color3.fromRGB(30, 30, 38),
-	ElementHover = Color3.fromRGB(45, 45, 55),
-	Accent = Color3.fromRGB(100, 180, 255),
-	AccentDark = Color3.fromRGB(60, 140, 220),
-	Success = Color3.fromRGB(80, 220, 150),
-	Danger = Color3.fromRGB(255, 100, 100),
-	TextMain = Color3.fromRGB(240, 240, 245),
-	TextDim = Color3.fromRGB(160, 160, 175),
-	Glow = Color3.fromRGB(100, 180, 255)
+	Background = Color3.fromRGB(14, 14, 20),
+	Sidebar = Color3.fromRGB(10, 10, 16),
+	Element = Color3.fromRGB(26, 26, 34),
+	ElementHover = Color3.fromRGB(42, 42, 52),
+	Accent = Color3.fromRGB(70, 180, 255),
+	AccentDark = Color3.fromRGB(50, 140, 220),
+	Success = Color3.fromRGB(70, 220, 150),
+	Danger = Color3.fromRGB(255, 90, 90),
+	TextMain = Color3.fromRGB(235, 235, 245),
+	TextDim = Color3.fromRGB(155, 155, 175)
 }
 
--- إنشاء الشاشة الرئيسية
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ProInterface"
+ScreenGui.Name = "ShadowUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local isGuiVisible = true
 local currentTargetData = nil
-local targetCache = {}
+local currentTab = "Targeting"
+local tabPages = {}
+local tabButtons = {}
 
 -- ======================================================================
--- دوال مساعدة محسنة مع تأثيرات وصوت
+-- دوال مساعدة
 -- ======================================================================
 
 local function PlayClick()
 	ClickSound:Play()
 end
 
-local function CreateFrame(parent, size, pos, color, cornerRadius, transparency)
-	local frame = Instance.new("Frame")
-	frame.Size = size
-	frame.Position = pos
-	frame.BackgroundColor3 = color
-	frame.BackgroundTransparency = transparency or 0
-	frame.BorderSizePixel = 0
-	frame.Parent = parent
-	
-	if cornerRadius then
-		local uiCorner = Instance.new("UICorner")
-		uiCorner.CornerRadius = UDim.new(0, cornerRadius)
-		uiCorner.Parent = frame
+local function CreateFrame(parent, size, pos, color, radius, trans)
+	local f = Instance.new("Frame")
+	f.Size = size
+	f.Position = pos
+	f.BackgroundColor3 = color
+	f.BackgroundTransparency = trans or 0
+	f.BorderSizePixel = 0
+	f.Parent = parent
+	if radius then
+		local c = Instance.new("UICorner")
+		c.CornerRadius = UDim.new(0, radius)
+		c.Parent = f
 	end
-	return frame
+	return f
 end
 
-local function CreateTextLabel(parent, text, size, pos, textColor, textSize, align, font)
-	local label = Instance.new("TextLabel")
-	label.Size = size
-	label.Position = pos
-	label.BackgroundTransparency = 1
-	label.Text = text
-	label.TextColor3 = textColor or Colors.TextMain
-	label.TextSize = textSize or 13
-	label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
-	label.TextXAlignment = align or Enum.TextXAlignment.Left
-	label.TextYAlignment = Enum.TextYAlignment.Center
-	if font then label.Font = font end
-	label.Parent = parent
-	return label
+local function CreateLabel(parent, text, size, pos, color, sizeTxt, align)
+	local l = Instance.new("TextLabel")
+	l.Size = size
+	l.Position = pos
+	l.BackgroundTransparency = 1
+	l.Text = text
+	l.TextColor3 = color or Colors.TextMain
+	l.TextSize = sizeTxt or 13
+	l.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
+	l.TextXAlignment = align or Enum.TextXAlignment.Left
+	l.TextYAlignment = Enum.TextYAlignment.Center
+	l.Parent = parent
+	return l
 end
 
 local function CreateTextBox(parent, placeholder, size, pos, callback)
-	local box = Instance.new("TextBox")
-	box.Size = size
-	box.Position = pos
-	box.BackgroundColor3 = Colors.Element
-	box.BorderSizePixel = 0
-	box.PlaceholderText = placeholder
-	box.PlaceholderColor3 = Colors.TextDim
-	box.TextColor3 = Colors.TextMain
-	box.TextSize = 13
-	box.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
-	box.ClearTextOnFocus = false
+	local b = Instance.new("TextBox")
+	b.Size = size
+	b.Position = pos
+	b.BackgroundColor3 = Colors.Element
+	b.BorderSizePixel = 0
+	b.PlaceholderText = placeholder
+	b.PlaceholderColor3 = Colors.TextDim
+	b.TextColor3 = Colors.TextMain
+	b.TextSize = 13
+	b.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
+	b.ClearTextOnFocus = false
 	
-	local padding = Instance.new("UIPadding")
-	padding.PaddingLeft = UDim.new(0, 12)
-	padding.PaddingTop = UDim.new(0, 8)
-	padding.Parent = box
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0, 12)
+	pad.PaddingTop = UDim.new(0, 8)
+	pad.Parent = b
 	
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = box
-	
-	box.Parent = parent
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 10)
+	c.Parent = b
+	b.Parent = parent
 	
 	if callback then
-		box.FocusLost:Connect(function(enterPressed)
-			if enterPressed then callback(box.Text) end
-		end)
+		b.FocusLost:Connect(function(enter) if enter then callback(b.Text) end end)
 	end
-	
-	return box
+	return b
 end
 
 local function CreateButton(parent, text, size, pos, callback, accent)
-	local btn = Instance.new("TextButton")
-	btn.Size = size
-	btn.Position = pos
-	btn.BackgroundColor3 = accent and Colors.Accent or Colors.Element
-	btn.Text = text
-	btn.TextColor3 = Colors.TextMain
-	btn.TextSize = 13
-	btn.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
-	btn.AutoButtonColor = false
-	btn.Parent = parent
+	local b = Instance.new("TextButton")
+	b.Size = size
+	b.Position = pos
+	b.BackgroundColor3 = accent and Colors.Accent or Colors.Element
+	b.Text = text
+	b.TextColor3 = Colors.TextMain
+	b.TextSize = 13
+	b.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
+	b.AutoButtonColor = false
+	b.Parent = parent
 	
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = btn
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 10)
+	c.Parent = b
 	
-	local originalColor = btn.BackgroundColor3
+	local origColor = b.BackgroundColor3
 	
-	-- تأثيرات hover والضغط مع الصوت
-	btn.MouseEnter:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Colors.ElementHover}):Play()
+	b.MouseEnter:Connect(function()
+		TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = Colors.ElementHover}):Play()
 	end)
-	
-	btn.MouseLeave:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = originalColor}):Play()
+	b.MouseLeave:Connect(function()
+		TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = origColor}):Play()
 	end)
-	
-	btn.MouseButton1Click:Connect(function()
+	b.MouseButton1Click:Connect(function()
 		PlayClick()
-		TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Colors.AccentDark}):Play()
+		TweenService:Create(b, TweenInfo.new(0.08), {BackgroundColor3 = Colors.AccentDark}):Play()
 		task.wait(0.08)
-		TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = originalColor}):Play()
+		TweenService:Create(b, TweenInfo.new(0.12), {BackgroundColor3 = origColor}):Play()
 		if callback then callback() end
 	end)
-	
-	return btn
+	return b
 end
 
 -- ======================================================================
--- الواجهة الرئيسية (مصغرة وأنيقة)
+-- الواجهة الرئيسية
 -- ======================================================================
 
-local MainContainer = CreateFrame(ScreenGui, UDim2.new(0, 620, 0, 440), UDim2.new(0.5, -310, 0.5, -220), Colors.Background, 16)
+local MainContainer = CreateFrame(ScreenGui, UDim2.new(0, 700, 0, 480), UDim2.new(0.5, -350, 0.5, -240), Colors.Background, 14)
 
--- شريط العنوان مع زر التصغير
-local TitleBar = CreateFrame(MainContainer, UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, 0), Colors.Sidebar, 0)
+-- شريط العنوان
+local TitleBar = CreateFrame(MainContainer, UDim2.new(1, 0, 0, 38), UDim2.new(0, 0, 0, 0), Colors.Sidebar, 0)
 TitleBar.UICorner:Destroy()
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 16)
-titleCorner.Parent = TitleBar
+local tc = Instance.new("UICorner")
+tc.CornerRadius = UDim.new(0, 14)
+tc.Parent = TitleBar
 
-CreateTextLabel(TitleBar, "⚡ TARGET PRO", UDim2.new(1, -50, 1, 0), UDim2.new(0, 16, 0, 0), Colors.Accent, 16, Enum.TextXAlignment.Left)
-TitleBar.Font = Enum.Font.GothamBold
+CreateLabel(TitleBar, "⚡ SHADOW PRO", UDim2.new(1, -50, 1, 0), UDim2.new(0, 14, 0, 0), Colors.Accent, 15, Enum.TextXAlignment.Left)
 
-local MinimizeBtn = CreateButton(TitleBar, "─", UDim2.new(0, 30, 0, 30), UDim2.new(1, -40, 0.5, -15), function()
+local MinimizeBtn = CreateButton(TitleBar, "─", UDim2.new(0, 28, 0, 28), UDim2.new(1, -40, 0.5, -14), function()
 	isGuiVisible = false
 	MainContainer.Visible = false
 	MinimizedButton.Visible = true
 end)
-MinimizeBtn.TextSize = 18
-MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 16
 
 -- ======================================================================
--- قسم البحث (مربع + زر جنباً إلى جنب)
+-- الشريط الجانبي (تبويبات)
 -- ======================================================================
 
-local SearchContainer = CreateFrame(MainContainer, UDim2.new(1, -24, 0, 50), UDim2.new(0, 12, 0, 50), Color3.fromRGB(0,0,0), 0, 1)
+local Sidebar = CreateFrame(MainContainer, UDim2.new(0, 150, 1, -38), UDim2.new(0, 0, 0, 38), Colors.Sidebar, 0)
+Sidebar.UICorner:Destroy()
+local sc = Instance.new("UICorner")
+sc.CornerRadius = UDim.new(0, 14)
+sc.Parent = Sidebar
 
--- مربع البحث (يأخذ 75% من العرض)
-local SearchBox = CreateTextBox(SearchContainer, "🔍 Search player...", UDim2.new(0.75, -8, 1, 0), UDim2.new(0, 0, 0, 0))
+-- منطقة المحتوى
+local ContentArea = CreateFrame(MainContainer, UDim2.new(1, -162, 1, -50), UDim2.new(0, 152, 0, 42), Color3.fromRGB(0,0,0), 0, 1)
 
--- زر البحث (25% من العرض)
-local SearchBtn = CreateButton(SearchContainer, "FIND", UDim2.new(0.25, 0, 1, 0), UDim2.new(0.75, 8, 0, 0), function()
+-- ======================================================================
+-- إنشاء التبويبات
+-- ======================================================================
+
+local tabList = {"Targeting", "Visuals", "Aimbot", "Settings"}
+
+for i, tabName in ipairs(tabList) do
+	local yPos = 10 + (i - 1) * 44
+	
+	local btn = CreateButton(Sidebar, tabName, UDim2.new(1, -12, 0, 36), UDim2.new(0, 6, 0, yPos), function()
+		for _, page in pairs(tabPages) do page.Visible = false end
+		tabPages[tabName].Visible = true
+		currentTab = tabName
+		
+		for _, b in pairs(tabButtons) do
+			b.BackgroundColor3 = Colors.Element
+			b.TextColor3 = Colors.TextDim
+		end
+		btn.BackgroundColor3 = Colors.Element
+		btn.TextColor3 = Colors.Accent
+	end)
+	btn.TextXAlignment = Enum.TextXAlignment.Center
+	btn.TextSize = 12
+	tabButtons[tabName] = btn
+	
+	local page = CreateFrame(ContentArea, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), Color3.fromRGB(0,0,0), 0, 1)
+	page.Visible = false
+	tabPages[tabName] = page
+end
+
+-- تفعيل أول تبويب
+tabPages["Targeting"].Visible = true
+if tabButtons["Targeting"] then
+	tabButtons["Targeting"].TextColor3 = Colors.Accent
+end
+
+-- ======================================================================
+-- تبويب Targeting (المحتوى)
+-- ======================================================================
+
+local TargetingPage = tabPages["Targeting"]
+
+-- صف البحث (مربع + زر)
+local SearchRow = CreateFrame(TargetingPage, UDim2.new(1, 0, 0, 44), UDim2.new(0, 0, 0, 6), Color3.fromRGB(0,0,0), 0, 1)
+
+local SearchBox = CreateTextBox(SearchRow, "🔍 Search player...", UDim2.new(0.72, -6, 1, 0), UDim2.new(0, 0, 0, 0))
+local SearchBtn = CreateButton(SearchRow, "FIND", UDim2.new(0.28, 0, 1, 0), UDim2.new(0.72, 6, 0, 0), function()
 	local query = SearchBox.Text
 	if #query < 2 then return end
 	
-	-- البحث الفعلي
 	task.spawn(function()
 		local found = nil
 		for _, p in ipairs(Players:GetPlayers()) do
@@ -198,195 +234,167 @@ local SearchBtn = CreateButton(SearchContainer, "FIND", UDim2.new(0.25, 0, 1, 0)
 		
 		if found then
 			currentTargetData = found
-			UpdatePlayerDisplay(found)
+			PlayerNameLabel.Text = found.Name
+			PlayerStatus.Text = "✅ Locked"
+			PlayerStatus.TextColor3 = Colors.Success
+			local success, content = pcall(function()
+				return Players:GetUserThumbnailAsync(found.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+			end)
+			if success and content then HeadshotImage.Image = content end
 		else
 			currentTargetData = nil
 			PlayerNameLabel.Text = "❌ Not Found"
-			PlayerStatus.Text = "Player doesn't exist"
+			PlayerStatus.Text = "No player exists"
 			PlayerStatus.TextColor3 = Colors.Danger
 			HeadshotImage.Image = "rbxassetid://0"
 		end
 	end)
-end, true) -- accent = true
+end, true)
 
--- ======================================================================
--- عرض اللاعب (الصورة + المعلومات)
--- ======================================================================
+-- عرض اللاعب
+local PlayerDisplay = CreateFrame(TargetingPage, UDim2.new(1, 0, 0, 76), UDim2.new(0, 0, 0, 56), Colors.Element, 10)
 
-local PlayerDisplay = CreateFrame(MainContainer, UDim2.new(1, -24, 0, 80), UDim2.new(0, 12, 0, 110), Colors.Element, 12)
-
--- صورة اللاعب
-local HeadshotImage = Instance.new("ImageLabel")
-HeadshotImage.Size = UDim2.new(0, 60, 0, 60)
-HeadshotImage.Position = UDim2.new(0, 10, 0.5, -30)
+HeadshotImage = Instance.new("ImageLabel")
+HeadshotImage.Size = UDim2.new(0, 56, 0, 56)
+HeadshotImage.Position = UDim2.new(0, 10, 0.5, -28)
 HeadshotImage.BackgroundTransparency = 1
 HeadshotImage.Image = "rbxassetid://0"
 HeadshotImage.ScaleType = Enum.ScaleType.Crop
 HeadshotImage.Parent = PlayerDisplay
-local imgCorner = Instance.new("UICorner")
-imgCorner.CornerRadius = UDim.new(0, 30)
-imgCorner.Parent = HeadshotImage
+local hic = Instance.new("UICorner")
+hic.CornerRadius = UDim.new(0, 28)
+hic.Parent = HeadshotImage
 
--- معلومات اللاعب
-local PlayerNameLabel = CreateTextLabel(PlayerDisplay, "No Target", UDim2.new(1, -100, 0, 30), UDim2.new(0, 80, 0, 10), Colors.TextMain, 17, Enum.TextXAlignment.Left)
+local PlayerNameLabel = CreateLabel(PlayerDisplay, "No Target", UDim2.new(1, -80, 0, 28), UDim2.new(0, 76, 0, 8), Colors.TextMain, 16, Enum.TextXAlignment.Left)
 PlayerNameLabel.Font = Enum.Font.GothamBold
 
-local PlayerStatus = CreateTextLabel(PlayerDisplay, "Waiting for search...", UDim2.new(1, -100, 0, 20), UDim2.new(0, 80, 0, 42), Colors.TextDim, 12, Enum.TextXAlignment.Left)
+local PlayerStatus = CreateLabel(PlayerDisplay, "Search for a player", UDim2.new(1, -80, 0, 20), UDim2.new(0, 76, 0, 38), Colors.TextDim, 11, Enum.TextXAlignment.Left)
 
--- دالة تحديث العرض
-local function UpdatePlayerDisplay(player)
-	if not player then return end
-	PlayerNameLabel.Text = player.Name
-	PlayerStatus.Text = "✅ Target Locked"
-	PlayerStatus.TextColor3 = Colors.Success
-	
-	local success, content = pcall(function()
-		return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-	end)
-	if success and content then
-		HeadshotImage.Image = content
-	end
-end
-
--- ======================================================================
--- أزرار الاستهداف (زرين في كل سطر)
--- ======================================================================
-
-local TogglesContainer = CreateFrame(MainContainer, UDim2.new(1, -24, 0, 120), UDim2.new(0, 12, 0, 200), Color3.fromRGB(0,0,0), 0, 1)
-
-local toggles = {}
+-- أزرار التبديل (2 في كل صف)
+local ToggleContainer = CreateFrame(TargetingPage, UDim2.new(1, 0, 0, 120), UDim2.new(0, 0, 0, 142), Color3.fromRGB(0,0,0), 0, 1)
 
 local function CreateToggle(parent, name, row, col)
-	local xPos = col == 1 and 0 or 0.5 + 0.02
-	local width = col == 1 and 0.48 or 0.48
+	local x = col == 1 and 0 or 0.5 + 0.02
+	local w = col == 1 and 0.48 or 0.48
 	
-	local toggleFrame = CreateFrame(parent, UDim2.new(width, -4, 0, 40), UDim2.new(xPos, 0, 0, row * 45), Colors.Element, 10)
+	local frame = CreateFrame(parent, UDim2.new(w, -6, 0, 38), UDim2.new(x, 0, 0, row * 44), Colors.Element, 8)
 	
-	local label = CreateTextLabel(toggleFrame, name, UDim2.new(1, -50, 1, 0), UDim2.new(0, 12, 0, 0), Colors.TextMain, 12, Enum.TextXAlignment.Left)
+	local label = CreateLabel(frame, name, UDim2.new(1, -50, 1, 0), UDim2.new(0, 10, 0, 0), Colors.TextMain, 11, Enum.TextXAlignment.Left)
 	
-	-- مؤشر الحالة
-	local statusIndicator = Instance.new("TextLabel")
-	statusIndicator.Size = UDim2.new(0, 40, 0, 22)
-	statusIndicator.Position = UDim2.new(1, -45, 0.5, -11)
-	statusIndicator.BackgroundTransparency = 1
-	statusIndicator.Text = "OFF"
-	statusIndicator.TextColor3 = Colors.Danger
-	statusIndicator.Font = Enum.Font.GothamBold
-	statusIndicator.TextSize = 10
-	statusIndicator.Parent = toggleFrame
+	local status = Instance.new("TextLabel")
+	status.Size = UDim2.new(0, 36, 0, 20)
+	status.Position = UDim2.new(1, -40, 0.5, -10)
+	status.BackgroundTransparency = 1
+	status.Text = "OFF"
+	status.TextColor3 = Colors.Danger
+	status.Font = Enum.Font.GothamBold
+	status.TextSize = 9
+	status.Parent = frame
 	
-	local isActive = false
-	toggles[name] = function() return isActive end
+	local active = false
 	
-	toggleFrame.InputBegan:Connect(function(input)
+	frame.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			PlayClick()
-			isActive = not isActive
-			
-			if isActive then
-				statusIndicator.Text = "ON"
-				statusIndicator.TextColor3 = Colors.Success
-				TweenService:Create(toggleFrame, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 45, 35)}):Play()
+			active = not active
+			if active then
+				status.Text = "ON"
+				status.TextColor3 = Colors.Success
+				TweenService:Create(frame, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 44, 34)}):Play()
 			else
-				statusIndicator.Text = "OFF"
-				statusIndicator.TextColor3 = Colors.Danger
-				TweenService:Create(toggleFrame, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Element}):Play()
+				status.Text = "OFF"
+				status.TextColor3 = Colors.Danger
+				TweenService:Create(frame, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Element}):Play()
 			end
-			print(name .. " → " .. tostring(isActive))
+			print(name .. " → " .. tostring(active))
 		end
 	end)
 end
 
--- أزرار الاستهداف (2 في كل سطر)
-CreateToggle(TogglesContainer, "Silent Aim", 0, 1)
-CreateToggle(TogglesContainer, "Auto Lock", 0, 2)
-CreateToggle(TogglesContainer, "Prediction", 1, 1)
-CreateToggle(TogglesContainer, "FOV Circle", 1, 2)
+CreateToggle(ToggleContainer, "Silent Aim", 0, 1)
+CreateToggle(ToggleContainer, "Auto Lock", 0, 2)
+CreateToggle(ToggleContainer, "Prediction", 1, 1)
+CreateToggle(ToggleContainer, "FOV Circle", 1, 2)
 
--- ======================================================================
--- زر المشاهدة (يعمل فعلياً)
--- ======================================================================
-
-local ViewContainer = CreateFrame(MainContainer, UDim2.new(1, -24, 0, 50), UDim2.new(0, 12, 1, -60), Color3.fromRGB(0,0,0), 0, 1)
+-- زر المشاهدة
+local ViewContainer = CreateFrame(TargetingPage, UDim2.new(1, 0, 0, 44), UDim2.new(0, 0, 1, -44), Color3.fromRGB(0,0,0), 0, 1)
 
 local ViewBtn = CreateButton(ViewContainer, "👁️ VIEW TARGET", UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), function()
 	if not currentTargetData then
-		PlayerStatus.Text = "⚠️ No target selected!"
+		PlayerStatus.Text = "⚠️ No target!"
 		PlayerStatus.TextColor3 = Colors.Danger
 		task.wait(1)
-		if currentTargetData then
-			PlayerStatus.Text = "✅ Target Locked"
-			PlayerStatus.TextColor3 = Colors.Success
-		else
-			PlayerStatus.Text = "Waiting for search..."
-			PlayerStatus.TextColor3 = Colors.TextDim
-		end
+		PlayerStatus.Text = "Search for a player"
+		PlayerStatus.TextColor3 = Colors.TextDim
 		return
 	end
 	
-	-- كود المشاهدة الفعلي (Spectate)
-	local camera = workspace.CurrentCamera
-	local targetChar = currentTargetData.Character
-	if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
-		local camPos = targetChar.HumanoidRootPart.Position + Vector3.new(0, 3, 5)
-		camera.CameraType = Enum.CameraType.Scriptable
-		
-		TweenService:Create(camera, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			CFrame = CFrame.lookAt(camPos, targetChar.HumanoidRootPart.Position)
+	local cam = workspace.CurrentCamera
+	local char = currentTargetData.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		local pos = char.HumanoidRootPart.Position
+		cam.CameraType = Enum.CameraType.Scriptable
+		TweenService:Create(cam, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+			CFrame = CFrame.lookAt(pos + Vector3.new(0, 2, 4), pos)
 		}):Play()
-		
-		PlayerStatus.Text = "🔭 Spectating " .. currentTargetData.Name
+		PlayerStatus.Text = "🔭 Spectating..."
 		PlayerStatus.TextColor3 = Colors.Accent
-		
-		-- العودة للكاميرا العادية بعد 3 ثوان أو عند الضغط مجدداً
-		task.wait(3)
-		camera.CameraType = Enum.CameraType.Custom
-		PlayerStatus.Text = "✅ Target Locked"
+		task.wait(2.5)
+		cam.CameraType = Enum.CameraType.Custom
+		PlayerStatus.Text = "✅ Locked"
 		PlayerStatus.TextColor3 = Colors.Success
 	else
-		PlayerStatus.Text = "❌ Target not in game"
+		PlayerStatus.Text = "❌ Not in game"
 		PlayerStatus.TextColor3 = Colors.Danger
 	end
 end, true)
 
 -- ======================================================================
--- زر الإظهار العائم
+-- تبويبات أخرى (محتوى بسيط)
+-- ======================================================================
+
+-- Visuals
+local vPage = tabPages["Visuals"]
+CreateLabel(vPage, "🎨 VISUAL SETTINGS", UDim2.new(1, 0, 0, 40), UDim2.new(0, 10, 0, 10), Colors.Accent, 18, Enum.TextXAlignment.Center)
+CreateLabel(vPage, "Coming soon...", UDim2.new(1, 0, 0, 30), UDim2.new(0, 10, 0, 60), Colors.TextDim, 14, Enum.TextXAlignment.Center)
+
+-- Aimbot
+local aPage = tabPages["Aimbot"]
+CreateLabel(aPage, "🎯 AIMBOT CONFIG", UDim2.new(1, 0, 0, 40), UDim2.new(0, 10, 0, 10), Colors.Accent, 18, Enum.TextXAlignment.Center)
+CreateLabel(aPage, "Coming soon...", UDim2.new(1, 0, 0, 30), UDim2.new(0, 10, 0, 60), Colors.TextDim, 14, Enum.TextXAlignment.Center)
+
+-- Settings
+local sPage = tabPages["Settings"]
+CreateLabel(sPage, "⚙️ SETTINGS", UDim2.new(1, 0, 0, 40), UDim2.new(0, 10, 0, 10), Colors.Accent, 18, Enum.TextXAlignment.Center)
+CreateLabel(sPage, "Coming soon...", UDim2.new(1, 0, 0, 30), UDim2.new(0, 10, 0, 60), Colors.TextDim, 14, Enum.TextXAlignment.Center)
+
+-- ======================================================================
+-- زر الإظهار المصغر
 -- ======================================================================
 
 local MinimizedButton = Instance.new("TextButton")
-MinimizedButton.Name = "RestoreBtn"
-MinimizedButton.Size = UDim2.new(0, 48, 0, 48)
-MinimizedButton.Position = UDim2.new(0, 16, 0.5, -24)
+MinimizedButton.Size = UDim2.new(0, 46, 0, 46)
+MinimizedButton.Position = UDim2.new(0, 14, 0.5, -23)
 MinimizedButton.BackgroundColor3 = Colors.Accent
 MinimizedButton.Text = "⚡"
-MinimizedButton.TextSize = 22
-MinimizedButton.TextColor3 = Color3.new(1,1,1)
+MinimizedButton.TextSize = 20
+MinimizedButton.TextColor3 = Color3.new(1, 1, 1)
 MinimizedButton.Visible = false
 MinimizedButton.AutoButtonColor = false
 MinimizedButton.Parent = ScreenGui
 
-local miniCorner = Instance.new("UICorner")
-miniCorner.CornerRadius = UDim.new(1, 0)
-miniCorner.Parent = MinimizedButton
-
--- إضافة glow حول الزر المصغر
-local glow = Instance.new("ImageLabel")
-glow.Size = UDim2.new(1.6, 0, 1.6, 0)
-glow.Position = UDim2.new(-0.3, 0, -0.3, 0)
-glow.BackgroundTransparency = 1
-glow.Image = "rbxassetid://0"
-glow.ImageTransparency = 0.5
-glow.Parent = MinimizedButton
+local mc = Instance.new("UICorner")
+mc.CornerRadius = UDim.new(1, 0)
+mc.Parent = MinimizedButton
 
 MinimizedButton.MouseButton1Click:Connect(function()
 	PlayClick()
 	isGuiVisible = true
 	MainContainer.Visible = true
 	MinimizedButton.Visible = false
-	
-	MainContainer.Position = UDim2.new(0.5, -310, 0.5, -250)
+	MainContainer.Position = UDim2.new(0.5, -350, 0.5, -260)
 	TweenService:Create(MainContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Position = UDim2.new(0.5, -310, 0.5, -220)
+		Position = UDim2.new(0.5, -350, 0.5, -240)
 	}):Play()
 end)
 
@@ -395,32 +403,32 @@ end)
 -- ======================================================================
 
 local dragging = false
-local dragInput, mousePos, framePos
+local dragStart, frameStart
 
 TitleBar.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
-		mousePos = input.Position
-		framePos = MainContainer.Position
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
+		dragStart = input.Position
+		frameStart = MainContainer.Position
 	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
-		local delta = input.Position - mousePos
+		local delta = input.Position - dragStart
 		MainContainer.Position = UDim2.new(
-			framePos.X.Scale,
-			framePos.X.Offset + delta.X,
-			framePos.Y.Scale,
-			framePos.Y.Offset + delta.Y
+			frameStart.X.Scale,
+			frameStart.X.Offset + delta.X,
+			frameStart.Y.Scale,
+			frameStart.Y.Offset + delta.Y
 		)
 	end
 end)
 
-print("✅ Shadow Interface Loaded Successfully")
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+print("✅ Shadow UI Loaded — All Tabs Working")
