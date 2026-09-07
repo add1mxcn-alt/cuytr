@@ -153,7 +153,7 @@ local Sidebar = CreateFrame(MainContainer, UDim2.new(0, 150, 1, 0), UDim2.new(0,
 
 CreateTextLabel(Sidebar, "⚡ MENU", UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, 10), Colors.Accent, 16, Enum.TextXAlignment.Center).Font = Enum.Font.GothamBold
 
-local TabList = {"Target", "Trolling", "Visuals", "Settings"}
+local TabList = {"Target", "Visuals", "Settings"}
 local TabButtons = {}
 local TabPages = {}
 
@@ -188,9 +188,8 @@ local function CreateTab(tabName, index)
 end
 
 local TargetingPage = CreateTab("Target", 1)
-local TrollingPage = CreateTab("Trolling", 2)
-CreateTab("Visuals", 3)
-CreateTab("Settings", 4)
+CreateTab("Visuals", 2)
+CreateTab("Settings", 3)
 
 TabPages["Target"].Visible = true
 TabButtons["Target"].BackgroundColor3 = Colors.Accent
@@ -294,7 +293,7 @@ SearchBox.FocusLost:Connect(function(enterPressed)
 end)
 
 -- زر المشاهدة
-local ViewBtn = CreateButton(TargetingPage, "👁️ VIEW TARGET", UDim2.new(1, -20, 0, 45), UDim2.new(0, 10, 1, -55), function()
+local ViewBtn = CreateButton(TargetingPage, "👁️ VIEW TARGET", UDim2.new(1, -20, 0, 35), UDim2.new(0, 10, 0, 120), function()
 	if currentTargetData and currentTargetData.Character then
 		local camera = workspace.CurrentCamera
 		local targetHead = currentTargetData.Character:FindFirstChild("Head")
@@ -318,17 +317,35 @@ local ViewBtn = CreateButton(TargetingPage, "👁️ VIEW TARGET", UDim2.new(1, 
 end)
 
 -- ============================================================================
--- قسم التخريب (Trolling Tab)
+-- أزرار التخريب في نفس التبويب
 -- ============================================================================
 
 local function CreateTrollingButton(parent, name, posX, posY, callback)
-	local btn = CreateFrame(parent, UDim2.new(0.31, 0, 0, 40), UDim2.new(posX, 0, posY, 0), Colors.Element, 10)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0.31, 0, 0, 35)
+	btn.Position = UDim2.new(posX, 0, posY, 0)
+	btn.BackgroundColor3 = Colors.Element
+	btn.AutoButtonColor = false
+	btn.Parent = parent
 	
-	local label = CreateTextLabel(btn, name, UDim2.new(1, -60, 1, 0), UDim2.new(0, 12, 0, 0), Colors.TextMain, 12, Enum.TextXAlignment.Left)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = btn
+	
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -50, 1, 0)
+	label.Position = UDim2.new(0, 10, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Text = name
+	label.TextColor3 = Colors.TextMain
+	label.TextSize = 12
+	label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = btn
 	
 	local statusDot = Instance.new("Frame")
 	statusDot.Size = UDim2.new(0, 8, 0, 8)
-	statusDot.Position = UDim2.new(1, -20, 0.5, -4)
+	statusDot.Position = UDim2.new(1, -18, 0.5, -4)
 	statusDot.BackgroundColor3 = Colors.Danger
 	statusDot.BorderSizePixel = 0
 	statusDot.Parent = btn
@@ -337,19 +354,17 @@ local function CreateTrollingButton(parent, name, posX, posY, callback)
 	dotCorner.CornerRadius = UDim.new(1, 0)
 	dotCorner.Parent = statusDot
 	
-	btn.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			ClickSound:Play()
-			callback()
-		end
-	end)
-	
 	btn.MouseEnter:Connect(function()
 		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Colors.ElementHover}):Play()
 	end)
 	
 	btn.MouseLeave:Connect(function()
 		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Colors.Element}):Play()
+	end)
+	
+	btn.MouseButton1Click:Connect(function()
+		ClickSound:Play()
+		callback()
 	end)
 	
 	return btn, statusDot
@@ -448,7 +463,7 @@ local function resetCharacter()
 end
 
 -- الصف الأول: 3 أزرار
-local BenxBtn, BenxDot = CreateTrollingButton(TrollingPage, "Benx", 0.01, 0, function()
+local BenxBtn, BenxDot = CreateTrollingButton(TargetingPage, "Benx", 0.01, 165, function()
     local target = findTargetPlayer() or currentTargetData
     if not target then
         PlayerStatus.Text = "Select target!"
@@ -479,7 +494,7 @@ local BenxBtn, BenxDot = CreateTrollingButton(TrollingPage, "Benx", 0.01, 0, fun
     end
 end)
 
-local BangBtn, BangDot = CreateTrollingButton(TrollingPage, "Bang", 0.345, 0, function()
+local BangBtn, BangDot = CreateTrollingButton(TargetingPage, "Bang", 0.345, 165, function()
     local target = findTargetPlayer() or currentTargetData
     if not target then
         PlayerStatus.Text = "Select target!"
@@ -510,7 +525,7 @@ local BangBtn, BangDot = CreateTrollingButton(TrollingPage, "Bang", 0.345, 0, fu
     end
 end)
 
-local FaceBangBtn, FaceBangDot = CreateTrollingButton(TrollingPage, "Face Bang", 0.68, 0, function()
+local FaceBangBtn, FaceBangDot = CreateTrollingButton(TargetingPage, "Face Bang", 0.68, 165, function()
     local target = findTargetPlayer() or currentTargetData
     if not target then
         PlayerStatus.Text = "Select target!"
@@ -542,7 +557,7 @@ local FaceBangBtn, FaceBangDot = CreateTrollingButton(TrollingPage, "Face Bang",
 end)
 
 -- الصف الثاني: 3 أزرار
-local HeadSitBtn, HeadSitDot = CreateTrollingButton(TrollingPage, "Head Sit", 0.01, 45, function()
+local HeadSitBtn, HeadSitDot = CreateTrollingButton(TargetingPage, "Head Sit", 0.01, 205, function()
     local target = findTargetPlayer() or currentTargetData
     if not target then
         PlayerStatus.Text = "Select target!"
@@ -573,7 +588,7 @@ local HeadSitBtn, HeadSitDot = CreateTrollingButton(TrollingPage, "Head Sit", 0.
     end
 end)
 
-local SuckBtn, SuckDot = CreateTrollingButton(TrollingPage, "Suck", 0.345, 45, function()
+local SuckBtn, SuckDot = CreateTrollingButton(TargetingPage, "Suck", 0.345, 205, function()
     local target = findTargetPlayer() or currentTargetData
     if not target then
         PlayerStatus.Text = "Select target!"
@@ -604,7 +619,7 @@ local SuckBtn, SuckDot = CreateTrollingButton(TrollingPage, "Suck", 0.345, 45, f
     end
 end)
 
-local FollowBtn, FollowDot = CreateTrollingButton(TrollingPage, "Follow", 0.68, 45, function()
+local FollowBtn, FollowDot = CreateTrollingButton(TargetingPage, "Follow", 0.68, 205, function()
     local target = findTargetPlayer() or currentTargetData
     if not target then
         PlayerStatus.Text = "Select target!"
@@ -635,7 +650,7 @@ local FollowBtn, FollowDot = CreateTrollingButton(TrollingPage, "Follow", 0.68, 
 end)
 
 -- زر إلغاء كل التخريب
-local ResetBtn = CreateButton(TrollingPage, "🛑 Reset All", UDim2.new(1, -20, 0, 40), UDim2.new(0, 10, 0, 100), function()
+local ResetBtn = CreateButton(TargetingPage, "🛑 Reset All", UDim2.new(1, -20, 0, 35), UDim2.new(0, 10, 0, 250), function()
     Benx = false; Bang = false; Suck = false; HeadSit = false; FaceBang = false; Stand = false; Follow = false
     _G.FlingTarget = nil
     
